@@ -13,6 +13,10 @@ type FriendliProps = {
 	setApiConfigurationField: (field: keyof ProviderSettings, value: ProviderSettings[keyof ProviderSettings]) => void
 }
 
+/**
+ * Settings form for the Friendli provider.
+ * Renders an API-key input and a "Get Friendli API Key" link when the key is empty.
+ */
 export const Friendli = ({ apiConfiguration, setApiConfigurationField }: FriendliProps) => {
 	const { t } = useAppTranslation()
 

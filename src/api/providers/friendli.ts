@@ -4,7 +4,14 @@ import type { ApiHandlerOptions } from "../../shared/api"
 
 import { BaseOpenAiCompatibleProvider } from "./base-openai-compatible-provider"
 
+/**
+ * Handler for the Friendli Model APIs (OpenAI-compatible).
+ * Routes chat completions to `https://api.friendli.ai/serverless/v1`.
+ */
 export class FriendliHandler extends BaseOpenAiCompatibleProvider<FriendliModelId> {
+	/**
+	 * @param options  Provider settings; `friendliApiKey` is required.
+	 */
 	constructor(options: ApiHandlerOptions) {
 		super({
 			...options,
