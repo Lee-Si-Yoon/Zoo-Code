@@ -5,6 +5,7 @@ import OpenAI from "openai"
 
 import { friendliDefaultModelId, friendliModels } from "@roo-code/types"
 
+import { buildApiHandler } from "../../index"
 import { FriendliHandler } from "../friendli"
 
 // Create mock functions
@@ -335,5 +336,12 @@ describe("FriendliHandler", () => {
 		expect(chunks[0]).toEqual({ type: "text", text: "Hello" })
 		expect(chunks[1]).toEqual({ type: "text", text: " world" })
 		expect(chunks[2]).toMatchObject({ type: "usage", inputTokens: 5, outputTokens: 10 })
+	})
+})
+
+describe("buildApiHandler friendli wiring", () => {
+	it("returns a FriendliHandler for apiProvider='friendli'", () => {
+		const handler = buildApiHandler({ apiProvider: "friendli", friendliApiKey: "test-key" })
+		expect(handler).toBeInstanceOf(FriendliHandler)
 	})
 })

@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@/utils/test-utils"
+import { render, screen, fireEvent } from "@/utils/test-utils"
 import type { ProviderSettings } from "@roo-code/types"
 
 import { Friendli } from "../Friendli"
@@ -11,10 +11,10 @@ vi.mock("@src/i18n/TranslationContext", () => ({
 }))
 
 vi.mock("@vscode/webview-ui-toolkit/react", () => ({
-	VSCodeTextField: ({ children, value }: any) => (
+	VSCodeTextField: ({ children, value, onInput }: any) => (
 		<div data-testid="friendli-api-key-field">
 			{children}
-			<input type="password" value={value || ""} readOnly />
+			<input type="password" value={value || ""} data-testid="friendli-api-key-input" onInput={onInput} />
 		</div>
 	),
 }))
@@ -47,5 +47,17 @@ describe("Friendli provider settings", () => {
 		)
 		expect(screen.queryByTestId("friendli-get-key-link")).not.toBeInTheDocument()
 		expect(screen.getByTestId("friendli-api-key-field")).toBeInTheDocument()
+	})
+
+	it("calls setApiConfigurationField with the API key when the input changes", () => {
+		const mockSetApiConfigurationField = vi.fn()
+		render(
+			<Friendli
+				apiConfiguration={{ apiProvider: "friendli" } as ProviderSettings}
+				setApiConfigurationField={mockSetApiConfigurationField}
+			/>,
+		)
+		fireEvent.input(screen.getByTestId("friendli-api-key-input"), { target: { value: "new-key" } })
+		expect(mockSetApiConfigurationField).toHaveBeenCalledWith("friendliApiKey", "new-key")
 	})
 })
