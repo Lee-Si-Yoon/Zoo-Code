@@ -102,7 +102,13 @@ import { Task } from "../task/Task"
 
 import { webviewMessageHandler } from "./webviewMessageHandler"
 import type { ClineMessage, TodoItem } from "@roo-code/types"
-import { readApiMessages, saveApiMessages, saveTaskMessages, TaskHistoryStore } from "../task-persistence"
+import {
+	readApiMessages,
+	saveApiMessages,
+	saveTaskMessages,
+	TaskHistoryStore,
+	assertValidTransition,
+} from "../task-persistence"
 import { readTaskMessages } from "../task-persistence/taskMessages"
 import { getNonce } from "./getNonce"
 import { getUri } from "./getUri"
@@ -199,7 +205,7 @@ export class ClineProvider
 
 	public isViewLaunched = false
 	public settingsImportedAt?: number
-	public readonly latestAnnouncementId = "jun-2026-v3.62.0-glm52-opencodego-toolwriter" // v3.62.0 GLM-5.2, OpenCode-Go native model params & routing, tool-writer mode
+	public readonly latestAnnouncementId = "jun-2026-v3.64.0-rules-ui-completion-actions-diff-thresholds" // v3.64.0 Rules Management UI, completion change review actions, relaxed diff thresholds
 	public readonly providerSettingsManager: ProviderSettingsManager
 	public readonly customModesManager: CustomModesManager
 
@@ -527,10 +533,12 @@ export class ClineProvider
 						const { historyItem: parentHistory } = await this.getTaskWithId(parentTaskId)
 
 						if (parentHistory?.status === "delegated" && parentHistory?.awaitingChildId === childTaskId) {
+							assertValidTransition(parentHistory.status, "active")
 							await this.updateTaskHistory({
 								...parentHistory,
 								status: "active",
 								awaitingChildId: undefined,
+								delegatedToId: undefined,
 							})
 							const repairMsg =
 								`[ClineProvider#removeClineFromStack] Repaired parent ${parentTaskId} metadata: delegated → active (child ${childTaskId} removed). ` +
@@ -2341,9 +2349,8 @@ export class ClineProvider
 		}
 
 		try {
-			const { isZooCodeAuthenticated, getCachedZooCodeUserInfo, getZooCodeBaseUrl } = await import(
-				"../../services/zoo-code-auth"
-			)
+			const { isZooCodeAuthenticated, getCachedZooCodeUserInfo, getZooCodeBaseUrl } =
+				await import("../../services/zoo-code-auth")
 			const userInfo = getCachedZooCodeUserInfo()
 			zooCodeState = {
 				zooCodeIsAuthenticated: await isZooCodeAuthenticated(),
@@ -3204,10 +3211,12 @@ export class ClineProvider
 					const { historyItem: parentHistory } = await this.getTaskWithId(task.parentTaskId!)
 
 					if (parentHistory?.status === "delegated" && parentHistory?.awaitingChildId === task.taskId) {
+						assertValidTransition(parentHistory.status, "active")
 						await this.updateTaskHistory({
 							...parentHistory,
 							status: "active",
 							awaitingChildId: undefined,
+							delegatedToId: undefined,
 						})
 
 						this.log(
@@ -3520,6 +3529,7 @@ export class ClineProvider
 		//    Broadcast and cache invalidation happen outside the lock after it releases.
 		try {
 			await this.taskHistoryStore.atomicReadAndUpdate(parentTaskId, (historyItem) => {
+				assertValidTransition(historyItem.status, "delegated")
 				const childIds = Array.from(new Set([...(historyItem.childIds ?? []), child.taskId]))
 				return {
 					...historyItem,
@@ -3543,7 +3553,11 @@ export class ClineProvider
 				}`,
 			)
 			try {
-				await this.removeClineFromStack({ skipDelegationRepair: true })
+				// Only pop the stack if the child we just created is still on top.
+				// A concurrent delegation could have pushed another child since we created ours.
+				if (this.getCurrentTask()?.taskId === child.taskId) {
+					await this.removeClineFromStack({ skipDelegationRepair: true })
+				}
 			} catch (cleanupError) {
 				this.log(
 					`[delegateParentAndOpenChild] Failed to close paused child ${child.taskId} during rollback: ${
@@ -3746,44 +3760,58 @@ export class ClineProvider
 
 			await saveApiMessages({ messages: parentApiMessages as any, taskId: parentTaskId, globalStoragePath })
 
-			// 3) Persist parent metadata before closing the child. If persistence fails,
-			//    the delegated child remains active and can retry completion.
-			const childIds = Array.from(new Set([...(historyItem.childIds ?? []), childTaskId]))
-			const updatedHistory: typeof historyItem = {
-				...historyItem,
-				status: "active",
-				completedByChildId: childTaskId,
-				completionResultSummary,
-				awaitingChildId: undefined,
-				childIds,
-			}
-			await this.updateTaskHistory(updatedHistory)
-
 			// 4) Close child instance if still open (single-open-task invariant).
-			//    This MUST happen BEFORE updating the child's status to "completed" because
+			//    This MUST happen BEFORE marking the child "completed" because
 			//    removeClineFromStack() → abortTask(true) → saveClineMessages() writes
 			//    the historyItem with initialStatus (typically "active"), which would
-			//    overwrite a "completed" status set earlier.
+			//    overwrite a "completed" status set later.
 			const current = this.getCurrentTask()
 			if (current?.taskId === childTaskId) {
 				await this.removeClineFromStack({ skipDelegationRepair: true })
 			}
 
-			// 5) Update child metadata to "completed" status.
-			//    This runs after the abort so it overwrites the stale "active" status
-			//    that saveClineMessages() may have written during step 4.
-			try {
-				const { historyItem: childHistory } = await this.getTaskWithId(childTaskId)
-				await this.updateTaskHistory({
-					...childHistory,
-					status: "completed",
-				})
-			} catch (err) {
-				this.log(
-					`[reopenParentFromDelegation] Failed to persist child completed status for ${childTaskId}: ${
-						(err as Error)?.message ?? String(err)
-					}`,
-				)
+			// 3+5) Atomically mark child completed and parent active in one lock acquisition.
+			//      No intermediate state is ever persisted — no sentinel needed.
+			//      Build the parent update inside the updater from the locked snapshot so
+			//      any concurrent write that landed between step 1 and the lock acquisition
+			//      is preserved rather than silently overwritten.
+			let updatedHistory!: typeof historyItem
+			await this.taskHistoryStore.atomicUpdatePair(
+				childTaskId,
+				parentTaskId,
+				(child) => {
+					assertValidTransition(child.status, "completed")
+					return { ...child, status: "completed" as const, completionResultSummary }
+				},
+				(parent) => {
+					if (parent.status !== "active") {
+						assertValidTransition(parent.status, "active")
+					}
+					const childIds = Array.from(new Set([...(parent.childIds ?? []), childTaskId]))
+					updatedHistory = {
+						...parent,
+						status: "active" as const,
+						completedByChildId: childTaskId,
+						completionResultSummary,
+						awaitingChildId: undefined,
+						delegatedToId: undefined,
+						childIds,
+					}
+					return updatedHistory
+				},
+			)
+			this.recentTasksCache = undefined
+
+			// Notify the webview of both updated items so its in-memory history stays current.
+			if (this.isViewLaunched) {
+				const updatedChild = this.taskHistoryStore.get(childTaskId)
+				const updatedParent = this.taskHistoryStore.get(parentTaskId)
+				if (updatedChild) {
+					await this.postMessageToWebview({ type: "taskHistoryItemUpdated", taskHistoryItem: updatedChild })
+				}
+				if (updatedParent) {
+					await this.postMessageToWebview({ type: "taskHistoryItemUpdated", taskHistoryItem: updatedParent })
+				}
 			}
 
 			// 6) Emit TaskDelegationCompleted (provider-level)
