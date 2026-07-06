@@ -6,6 +6,7 @@ import OpenAI from "openai"
 import { friendliDefaultModelId, friendliModels } from "@roo-code/types"
 
 import { buildApiHandler } from "../../index"
+import { getModelMaxOutputTokens } from "../../../shared/api"
 import { FriendliHandler } from "../friendli"
 
 // Create mock functions
@@ -89,7 +90,7 @@ describe("FriendliHandler", () => {
 	it("should return GLM-5.2 model with correct configuration", () => {
 		const handlerWithModel = new FriendliHandler({
 			apiModelId: "zai-org/GLM-5.2",
-			friendliApiKey: "test-friendli-api-key",
+			friendliApiKey: "test-...ey",
 		})
 		const model = handlerWithModel.getModel()
 		expect(model.id).toBe("zai-org/GLM-5.2")
@@ -99,8 +100,10 @@ describe("FriendliHandler", () => {
 				contextWindow: 1_000_000,
 				supportsImages: false,
 				supportsPromptCache: true,
+				supportsMaxTokens: true,
 				inputPrice: 1.4,
 				outputPrice: 4.4,
+				cacheWritesPrice: 0,
 				cacheReadsPrice: 0.26,
 			}),
 		)
@@ -111,35 +114,43 @@ describe("FriendliHandler", () => {
 			modelId: "zai-org/GLM-5.1" as const,
 			contextWindow: 200_000,
 			maxTokens: 131_072,
+			supportsMaxTokens: true,
 			inputPrice: 1.4,
 			outputPrice: 4.4,
+			cacheWritesPrice: 0,
 			cacheReadsPrice: 0.26,
 		},
 		{
 			modelId: "deepseek-ai/DeepSeek-V3.2" as const,
 			contextWindow: 163_840,
 			maxTokens: 16384,
+			supportsMaxTokens: undefined,
 			inputPrice: 0.5,
 			outputPrice: 1.5,
+			cacheWritesPrice: 0,
 			cacheReadsPrice: 0.25,
 		},
 		{
 			modelId: "MiniMaxAI/MiniMax-M2.5" as const,
 			contextWindow: 204_800,
 			maxTokens: 4096,
+			supportsMaxTokens: undefined,
 			inputPrice: 0.3,
 			outputPrice: 1.2,
+			cacheWritesPrice: 0,
 			cacheReadsPrice: 0.06,
 		},
 	])(
 		"should expose newly added model $modelId",
-		({ modelId, contextWindow, maxTokens, inputPrice, outputPrice, cacheReadsPrice }) => {
+		({ modelId, contextWindow, maxTokens, supportsMaxTokens, inputPrice, outputPrice, cacheWritesPrice, cacheReadsPrice }) => {
 			expect(friendliModels[modelId]).toBeDefined()
-			const info = friendliModels[modelId]
+			const info = friendliModels[modelId] as import("@roo-code/types").ModelInfo
 			expect(info.maxTokens).toBe(maxTokens)
 			expect(info.contextWindow).toBe(contextWindow)
+			expect(info.supportsMaxTokens).toBe(supportsMaxTokens)
 			expect(info.inputPrice).toBe(inputPrice)
 			expect(info.outputPrice).toBe(outputPrice)
+			expect(info.cacheWritesPrice).toBe(cacheWritesPrice)
 			expect(info.cacheReadsPrice).toBe(cacheReadsPrice)
 			expect(info.description).toBeTruthy()
 
@@ -343,5 +354,43 @@ describe("buildApiHandler friendli wiring", () => {
 	it("returns a FriendliHandler for apiProvider='friendli'", () => {
 		const handler = buildApiHandler({ apiProvider: "friendli", friendliApiKey: "test-key" })
 		expect(handler).toBeInstanceOf(FriendliHandler)
+	})
+})
+
+describe("Friendli model max output tokens (clamping behavior)", () => {
+	it("GLM-5.2: maxTokens (131072) is under 20% of 1M context window — clamp is no-op", () => {
+		const model = friendliModels["zai-org/GLM-5.2"]
+		const result = getModelMaxOutputTokens({
+			modelId: "zai-org/GLM-5.2",
+			model,
+			settings: { apiProvider: "friendli" },
+			format: "openai",
+		})
+		// 1_000_000 * 0.2 = 200_000 > 131_072 → no clamping
+		expect(result).toBe(131_072)
+	})
+
+	it("GLM-5.1: maxTokens (131072) exceeds 20% of 200k context window — clamp binds to 40000", () => {
+		const model = friendliModels["zai-org/GLM-5.1"]
+		const result = getModelMaxOutputTokens({
+			modelId: "zai-org/GLM-5.1",
+			model,
+			settings: { apiProvider: "friendli" },
+			format: "openai",
+		})
+		// 200_000 * 0.2 = 40_000 < 131_072 → clamped to 40_000
+		expect(result).toBe(40_000)
+	})
+
+	it("GLM-5.1 with user modelMaxTokens override: honors override capped at model maxTokens", () => {
+		const model = friendliModels["zai-org/GLM-5.1"]
+		const result = getModelMaxOutputTokens({
+			modelId: "zai-org/GLM-5.1",
+			model,
+			settings: { apiProvider: "friendli", modelMaxTokens: 80_000 },
+			format: "openai",
+		})
+		// supportsMaxTokens=true, user set 80k, model ceiling 131072 → min(80000, 131072) = 80000
+		expect(result).toBe(80_000)
 	})
 })
