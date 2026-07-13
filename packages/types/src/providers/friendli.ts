@@ -20,8 +20,10 @@ export const friendliModels = {
 		outputPrice: 4.4,
 		cacheWritesPrice: 0,
 		cacheReadsPrice: 0.26,
+		supportsReasoningEffort: ["minimal", "low", "medium", "high", "xhigh", "max"],
+		reasoningEffort: "high",
 		description:
-			"GLM-5.2 is Zhipu's flagship model with a 1M context window and 128k max output, served via Friendli Model APIs. It delivers top-tier long-context reasoning, coding, and agentic performance for extended engineering sessions.",
+			"GLM-5.2 is Zhipu's flagship model with a 1M context window and 128k max output, served via Friendli Model APIs. It delivers top-tier long-context reasoning, coding, and agentic performance for extended engineering sessions. (controllable reasoning model)",
 	},
 	"zai-org/GLM-5.1": {
 		maxTokens: 131_072,
@@ -33,8 +35,10 @@ export const friendliModels = {
 		outputPrice: 4.4,
 		cacheWritesPrice: 0,
 		cacheReadsPrice: 0.26,
+		supportsReasoningEffort: ["minimal", "low", "medium", "high", "xhigh", "max"],
+		reasoningEffort: "high",
 		description:
-			"GLM-5.1 is Zhipu's most capable model with a 200k context window and 128k max output, served via Friendli Model APIs. It delivers top-tier reasoning, coding, and agentic performance.",
+			"GLM-5.1 is Zhipu's most capable model with a 200k context window and 128k max output, served via Friendli Model APIs. It delivers top-tier reasoning, coding, and agentic performance. (controllable reasoning model)",
 	},
 	"deepseek-ai/DeepSeek-V3.2": {
 		maxTokens: 16384,
@@ -57,7 +61,8 @@ export const friendliModels = {
 		outputPrice: 1.2,
 		cacheWritesPrice: 0,
 		cacheReadsPrice: 0.06,
+		supportsReasoningBinary: true,
 		description:
-			"MiniMax M2.5 is a high-performance language model with a 204.8K context window, optimized for long-context understanding and generation tasks, served via Friendli Model APIs.",
+			"MiniMax M2.5 is a high-performance language model with a 204.8K context window, optimized for long-context understanding and generation tasks, served via Friendli Model APIs. (always-reasoning model)",
 	},
 } as const satisfies Record<string, ModelInfo>
