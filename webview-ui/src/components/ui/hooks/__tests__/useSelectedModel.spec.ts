@@ -1287,6 +1287,7 @@ describe("useSelectedModel", () => {
 					openrouter: {},
 					requesty: {},
 					litellm: {},
+					friendli: {},
 				},
 				isLoading: false,
 				isError: false,

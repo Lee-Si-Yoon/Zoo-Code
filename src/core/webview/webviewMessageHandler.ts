@@ -1123,6 +1123,7 @@ export const webviewMessageHandler = async (
 						[providerIdentifiers.kenari]: {},
 						[providerIdentifiers.nanogpt]: {},
 						[providerIdentifiers.kimiCode]: {},
+						[providerIdentifiers.friendli]: {},
 					}
 
 			const safeGetModels = async (options: GetModelsOptions): Promise<ModelRecord> => {
@@ -1159,6 +1160,7 @@ export const webviewMessageHandler = async (
 						apiKey: apiConfiguration.unboundApiKey,
 					},
 				},
+				{ key: providerIdentifiers.friendli, options: { provider: providerIdentifiers.friendli } },
 				{
 					key: providerIdentifiers.vercelAiGateway,
 					options: { provider: providerIdentifiers.vercelAiGateway },
