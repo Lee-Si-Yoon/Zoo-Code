@@ -1055,6 +1055,7 @@ export const webviewMessageHandler = async (
 						"opencode-go": {},
 						kenari: {},
 						"kimi-code": {},
+						friendli: {},
 					}
 
 			const safeGetModels = async (options: GetModelsOptions): Promise<ModelRecord> => {
@@ -1089,6 +1090,7 @@ export const webviewMessageHandler = async (
 					},
 				},
 				{ key: "vercel-ai-gateway", options: { provider: "vercel-ai-gateway" } },
+				{ key: "friendli", options: { provider: "friendli" } },
 				{
 					key: "zoo-gateway",
 					options: {
