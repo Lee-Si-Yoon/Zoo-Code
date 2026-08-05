@@ -127,7 +127,6 @@ describe("FriendliHandler", () => {
 			modelId: "zai-org/GLM-5.1" as const,
 			contextWindow: 200_000,
 			maxTokens: 131_072,
-			supportsMaxTokens: true,
 			inputPrice: 1.4,
 			outputPrice: 4.4,
 			cacheWritesPrice: 0,
@@ -137,7 +136,6 @@ describe("FriendliHandler", () => {
 			modelId: "deepseek-ai/DeepSeek-V3.2" as const,
 			contextWindow: 163_840,
 			maxTokens: 16384,
-			supportsMaxTokens: undefined,
 			inputPrice: 0.5,
 			outputPrice: 1.5,
 			cacheWritesPrice: 0,
@@ -147,7 +145,6 @@ describe("FriendliHandler", () => {
 			modelId: "MiniMaxAI/MiniMax-M2.5" as const,
 			contextWindow: 204_800,
 			maxTokens: 4096,
-			supportsMaxTokens: undefined,
 			inputPrice: 0.3,
 			outputPrice: 1.2,
 			cacheWritesPrice: 0,
@@ -155,21 +152,12 @@ describe("FriendliHandler", () => {
 		},
 	])(
 		"should expose newly added model $modelId",
-		({
-			modelId,
-			contextWindow,
-			maxTokens,
-			supportsMaxTokens,
-			inputPrice,
-			outputPrice,
-			cacheWritesPrice,
-			cacheReadsPrice,
-		}) => {
+		({ modelId, contextWindow, maxTokens, inputPrice, outputPrice, cacheWritesPrice, cacheReadsPrice }) => {
 			expect(friendliModels[modelId]).toBeDefined()
 			const info = friendliModels[modelId] as import("@roo-code/types").ModelInfo
 			expect(info.maxTokens).toBe(maxTokens)
 			expect(info.contextWindow).toBe(contextWindow)
-			expect(info.supportsMaxTokens).toBe(supportsMaxTokens)
+			expect(info.supportsMaxTokens).toBe(true)
 			expect(info.inputPrice).toBe(inputPrice)
 			expect(info.outputPrice).toBe(outputPrice)
 			expect(info.cacheWritesPrice).toBe(cacheWritesPrice)
@@ -481,7 +469,7 @@ describe("FriendliHandler — Friendli-specific reasoning params", () => {
 		expect(callArgs.include_reasoning).toBe(true)
 	})
 
-	it("should not include any reasoning params for non-reasoning DeepSeek-V3.2", async () => {
+	it("should send enable_thinking + parse_reasoning (no reasoning_effort) for binary reasoning DeepSeek-V3.2", async () => {
 		const handler = new FriendliHandler({
 			apiModelId: "deepseek-ai/DeepSeek-V3.2",
 			friendliApiKey: "test-key",
@@ -494,9 +482,11 @@ describe("FriendliHandler — Friendli-specific reasoning params", () => {
 		await handler.createMessage("system", []).next()
 
 		const callArgs = mockCreate.mock.calls[0][0] as Record<string, unknown>
+		// Binary reasoning model: no reasoning_effort, but enable_thinking + parse_reasoning
 		expect(callArgs.reasoning_effort).toBeUndefined()
-		expect(callArgs.chat_template_kwargs).toBeUndefined()
-		expect(callArgs.parse_reasoning).toBeUndefined()
+		expect(callArgs.chat_template_kwargs).toEqual({ enable_thinking: true })
+		expect(callArgs.parse_reasoning).toBe(true)
+		expect(callArgs.include_reasoning).toBe(true)
 	})
 
 	it("should handle delta.reasoning_content from parse_reasoning=true stream", async () => {
@@ -536,7 +526,7 @@ describe("FriendliHandler — Friendli-specific reasoning params", () => {
 			apiModelId: "zai-org/GLM-5.2",
 			friendliApiKey: "test-key",
 			enableReasoningEffort: true,
-			reasoningEffort: "medium",
+			reasoningEffort: "high",
 		})
 
 		mockCreate.mockResolvedValueOnce({
@@ -546,7 +536,7 @@ describe("FriendliHandler — Friendli-specific reasoning params", () => {
 		await handler.completePrompt("test")
 
 		const callArgs = mockCreate.mock.calls[0][0] as Record<string, unknown>
-		expect(callArgs.reasoning_effort).toBe("medium")
+		expect(callArgs.reasoning_effort).toBe("high")
 		expect(callArgs.chat_template_kwargs).toEqual({ enable_thinking: true })
 		expect(callArgs.parse_reasoning).toBe(true)
 		expect(callArgs.include_reasoning).toBe(true)
