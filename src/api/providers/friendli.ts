@@ -166,10 +166,11 @@ export class FriendliHandler extends BaseOpenAiCompatibleProvider<FriendliModelI
 	 *   User enabled → { enable_thinking: true } + reasoning_effort + parse_reasoning.
 	 *   User disabled (none/disable) → { enable_thinking: false } to prevent the
 	 *   model's Jinja template from defaulting thinking ON.
-	 * - Boolean reasoning models (DeepSeek-V3.2, MiniMax-M2.5, GLM-5.1): reasoning
-	 *   is on/off only — no reasoning_effort enum. The handler sends
-	 *   { enable_thinking: true } + parse_reasoning when enabled, or nothing when
-	 *   disabled. reasoning_effort is omitted because the API doesn't accept it.
+	 * - Boolean reasoning models (e.g. GLM-5.1, DeepSeek-V3.2, MiniMax-M2.5 from
+	 *   the live /v1/models list): reasoning is on/off only — no reasoning_effort
+	 *   enum. The handler sends { enable_thinking: true } + parse_reasoning when
+	 *   enabled, or nothing when disabled. reasoning_effort is omitted because the
+	 *   API doesn't accept it.
 	 */
 	private buildFriendliReasoningParams(): Partial<FriendliReasoningParams> {
 		const { info: modelInfo, reasoningEffort } = this.getModel()
