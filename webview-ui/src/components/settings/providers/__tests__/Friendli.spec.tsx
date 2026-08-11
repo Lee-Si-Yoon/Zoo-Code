@@ -1,6 +1,6 @@
 import React from "react"
 import { render, screen, fireEvent } from "@/utils/test-utils"
-import type { ProviderSettings } from "@roo-code/types"
+import { type ProviderSettings, friendliModels } from "@roo-code/types"
 
 import { Friendli } from "../Friendli"
 
@@ -27,8 +27,24 @@ vi.mock("@src/components/common/VSCodeButtonLink", () => ({
 	),
 }))
 
+type ModelPickerMockProps = {
+	defaultModelId: string
+	models: Record<string, unknown>
+	modelIdKey: string
+	serviceName: string
+	serviceUrl: string
+	errorMessage?: string
+	apiConfiguration: unknown
+	setApiConfigurationField: (field: string, value: unknown) => void
+}
+
+let mockModelPickerProps: ModelPickerMockProps = {} as ModelPickerMockProps
+
 vi.mock("../../ModelPicker", () => ({
-	ModelPicker: () => <div data-testid="friendli-model-picker-mock" />,
+	ModelPicker: (props: ModelPickerMockProps) => {
+		mockModelPickerProps = props
+		return <div data-testid="friendli-model-picker-mock" />
+	},
 }))
 
 describe("Friendli provider settings", () => {
@@ -63,5 +79,27 @@ describe("Friendli provider settings", () => {
 		)
 		fireEvent.input(screen.getByTestId("friendli-api-key-input"), { target: { value: "new-key" } })
 		expect(mockSetApiConfigurationField).toHaveBeenCalledWith("friendliApiKey", "new-key")
+	})
+
+	it("passes correct props to ModelPicker (default model, static fallback, error message)", () => {
+		const mockSetApiConfigurationField = vi.fn()
+		const apiConfig = { apiProvider: "friendli" } as ProviderSettings
+		render(
+			<Friendli
+				apiConfiguration={apiConfig}
+				setApiConfigurationField={mockSetApiConfigurationField}
+				modelValidationError="test error"
+			/>,
+		)
+		expect(screen.getByTestId("friendli-model-picker-mock")).toBeInTheDocument()
+		expect(mockModelPickerProps).toMatchObject({
+			defaultModelId: "zai-org/GLM-5.2",
+			modelIdKey: "apiModelId",
+			serviceName: "Friendli",
+			serviceUrl: "https://friendli.ai",
+			errorMessage: "test error",
+		})
+		// When routerModels is not provided, ModelPicker should receive the static fallback
+		expect(mockModelPickerProps.models).toEqual(friendliModels)
 	})
 })

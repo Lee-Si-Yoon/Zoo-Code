@@ -73,7 +73,11 @@ export const Friendli = ({
 				apiConfiguration={apiConfiguration}
 				setApiConfigurationField={setApiConfigurationField}
 				defaultModelId={friendliDefaultModelId}
-				models={routerModels?.["friendli"] ?? friendliModels}
+				models={
+					routerModels?.["friendli"] && Object.keys(routerModels["friendli"]).length > 0
+						? routerModels["friendli"]
+						: friendliModels
+				}
 				modelIdKey="apiModelId"
 				serviceName="Friendli"
 				serviceUrl="https://friendli.ai"

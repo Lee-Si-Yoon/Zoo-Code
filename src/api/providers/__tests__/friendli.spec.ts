@@ -418,10 +418,10 @@ describe("FriendliHandler — Friendli-specific reasoning params", () => {
 			reasoningEffort: "high",
 		})
 
-		// Wait for dynamic model to load so getModel() uses the DeepSeek binary
-		// reasoning model instead of falling back to the GLM-5.2 static default
+		// Wait for the dynamic model to load so getModel() returns the DeepSeek
+		// binary reasoning model instead of falling back to the static default.
 		await vi.waitFor(() => {
-			expect((handler as unknown as Record<string, unknown>)["dynamicModelsLoaded"]).toBe(true)
+			expect(handler.getModel().id).toBe("deepseek-ai/DeepSeek-V3.2")
 		})
 
 		mockCreate.mockImplementationOnce(() => asyncStreamFrom([]))
@@ -507,10 +507,11 @@ describe("FriendliHandler — dynamic model loading", () => {
 
 		// "friendli-only/future-model" is not in static friendliModels, but
 		// because dynamicModelsLoaded is still false the handler keeps the
-		// requested id and falls back to the default model's metadata.
+		// requested id and uses sane defaults (no model-specific metadata)
+		// until the dynamic list arrives.
 		const model = handler.getModel()
 		expect(model.id).toBe("friendli-only/future-model")
-		expect(model.info).toEqual(friendliModels[friendliDefaultModelId])
+		expect(model.info).toEqual(expect.objectContaining({ supportsImages: true, supportsPromptCache: false }))
 	})
 
 	it("falls back to default model after load completes and id is not in dynamic set", async () => {
@@ -522,14 +523,11 @@ describe("FriendliHandler — dynamic model loading", () => {
 			friendliApiKey: "test-key",
 		})
 
-		// Wait for the dynamic fetch to settle
+		// After load, the dynamic-only id is not found -- falls back to default.
+		// Wait for the observable getModel() result to reflect the fallback.
 		await vi.waitFor(() => {
-			expect((handler as unknown as Record<string, unknown>)["dynamicModelsLoaded"]).toBe(true)
+			expect(handler.getModel().id).toBe(friendliDefaultModelId)
 		})
-
-		// After load, the dynamic-only id is not found — falls back to default
-		const model = handler.getModel()
-		expect(model.id).toBe(friendliDefaultModelId)
 	})
 
 	it("uses dynamic model info when available", async () => {
@@ -549,19 +547,18 @@ describe("FriendliHandler — dynamic model loading", () => {
 			friendliApiKey: "test-key",
 		})
 
+		// Wait for the dynamic model to appear in getModel() results.
 		await vi.waitFor(() => {
-			expect((handler as unknown as Record<string, unknown>)["dynamicModelsLoaded"]).toBe(true)
+			const model = handler.getModel()
+			expect(model.id).toBe("friendli-only/future-model")
+			expect(model.info).toEqual(
+				expect.objectContaining({
+					maxTokens: 8192,
+					contextWindow: 100000,
+					description: "A dynamic-only model",
+				}),
+			)
 		})
-
-		const model = handler.getModel()
-		expect(model.id).toBe("friendli-only/future-model")
-		expect(model.info).toEqual(
-			expect.objectContaining({
-				maxTokens: 8192,
-				contextWindow: 100000,
-				description: "A dynamic-only model",
-			}),
-		)
 	})
 
 	it("sets dynamicModelsLoaded even when getModels rejects", async () => {
@@ -572,12 +569,10 @@ describe("FriendliHandler — dynamic model loading", () => {
 			friendliApiKey: "test-key",
 		})
 
+		// After rejection, getModel() falls back to the default model.
 		await vi.waitFor(() => {
-			expect((handler as unknown as Record<string, unknown>)["dynamicModelsLoaded"]).toBe(true)
+			expect(handler.getModel().id).toBe(friendliDefaultModelId)
 		})
-
-		// Falls back to default model
-		expect(handler.getModel().id).toBe(friendliDefaultModelId)
 		consoleErrorSpy.mockRestore()
 	})
 })

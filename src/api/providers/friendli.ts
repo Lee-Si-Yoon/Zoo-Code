@@ -1,7 +1,13 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 
-import { type FriendliModelId, friendliDefaultModelId, friendliModels, type ModelInfo } from "@roo-code/types"
+import {
+	type FriendliModelId,
+	friendliDefaultModelId,
+	friendliModels,
+	type ModelInfo,
+	openAiModelInfoSaneDefaults,
+} from "@roo-code/types"
 import type { ModelRecord } from "@roo-code/types"
 
 import type { ApiHandlerOptions } from "../../shared/api"
@@ -137,11 +143,12 @@ export class FriendliHandler extends BaseOpenAiCompatibleProvider<FriendliModelI
 			// Dynamic load still in-flight and the requested id is dynamic-only
 			// (not in the static map). Preserve the requested id so the first
 			// request after construction goes to the model the user selected, not
-			// the default; use the default model's static metadata temporarily so
-			// capability checks (context window, pricing) have something to work
-			// with until the dynamic list arrives.
+			// the default. Use sane defaults (no reasoning, no cache, no max-tokens)
+			// instead of the GLM-5.2 default model's metadata so that reasoning
+			// params and max_tokens are not derived from the wrong model's capabilities.
+			// Once the dynamic list arrives, getModel() returns the correct metadata.
 			id = requestedId as FriendliModelId
-			info = this.providerModels[this.defaultProviderModelId]
+			info = openAiModelInfoSaneDefaults
 		} else {
 			id = staticId
 			info = staticInfo
@@ -172,8 +179,11 @@ export class FriendliHandler extends BaseOpenAiCompatibleProvider<FriendliModelI
 	 *   enabled, or nothing when disabled. reasoning_effort is omitted because the
 	 *   API doesn't accept it.
 	 */
-	private buildFriendliReasoningParams(): Partial<FriendliReasoningParams> {
-		const { info: modelInfo, reasoningEffort } = this.getModel()
+	private buildFriendliReasoningParams(model: {
+		info: ModelInfo
+		reasoningEffort?: string
+	}): Partial<FriendliReasoningParams> {
+		const { info: modelInfo, reasoningEffort } = model
 		const extra: Partial<FriendliReasoningParams> = {}
 
 		const isControllableReasoning = Array.isArray(modelInfo.supportsReasoningEffort)
@@ -231,9 +241,12 @@ export class FriendliHandler extends BaseOpenAiCompatibleProvider<FriendliModelI
 		metadata?: ApiHandlerCreateMessageMetadata,
 		requestOptions?: OpenAI.RequestOptions,
 	) {
-		const friendliExtra = this.buildFriendliReasoningParams()
+		// Call getModel() once and reuse for both reasoning params and request
+		// construction to avoid race conditions during dynamic model loading.
+		const modelInfo = this.getModel()
+		const friendliExtra = this.buildFriendliReasoningParams(modelInfo)
 
-		const { id: model, info } = this.getModel()
+		const { id: model, info } = modelInfo
 
 		// Centralized cap: clamp to 20% of the context window
 		const max_tokens =
@@ -270,8 +283,9 @@ export class FriendliHandler extends BaseOpenAiCompatibleProvider<FriendliModelI
 	}
 
 	override async completePrompt(prompt: string, options?: CompletePromptOptions): Promise<string> {
-		const { id: modelId } = this.getModel()
-		const friendliExtra = this.buildFriendliReasoningParams()
+		const model = this.getModel()
+		const { id: modelId } = model
+		const friendliExtra = this.buildFriendliReasoningParams(model)
 
 		const params: FriendliChatCompletionNonStreamingParams = {
 			model: modelId,

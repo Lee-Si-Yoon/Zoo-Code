@@ -385,9 +385,22 @@ function getSelectedModel({
 			return { id, info }
 		}
 		case providerIdentifiers.friendli: {
-			const availableModels = routerModels.friendli
-				? { ...friendliModels, ...routerModels.friendli }
-				: friendliModels
+			// When the Friendli router data is absent or empty (loading or fetch
+			// failed), fall back to the static seed. Preserve the saved model
+			// selection if it exists in the static seed rather than substituting
+			// the default, so the user's selection survives the loading window.
+			const hasFriendliRouter = routerModels.friendli && Object.keys(routerModels.friendli).length > 0
+
+			if (!hasFriendliRouter) {
+				const savedId = apiConfiguration.apiModelId
+				const staticInfo = savedId ? friendliModels[savedId as keyof typeof friendliModels] : undefined
+				if (savedId && staticInfo) {
+					return { id: savedId, info: staticInfo }
+				}
+				return { id: defaultModelId, info: friendliModels[defaultModelId as keyof typeof friendliModels] }
+			}
+
+			const availableModels = { ...friendliModels, ...routerModels.friendli! }
 			const id = getValidatedModelId(apiConfiguration.apiModelId, availableModels, defaultModelId)
 			const routerInfo = routerModels.friendli?.[id]
 			const staticInfo = friendliModels[id as keyof typeof friendliModels]

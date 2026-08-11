@@ -275,7 +275,7 @@ describe("Friendli Fetchers", () => {
 			expect(result.supportsReasoningEffort).toEqual(["low", "high", "max"])
 		})
 
-		it("returns empty array when effort values are all unknown or default", () => {
+		it("returns binary reasoning when all effort values are unknown or default", () => {
 			const model: FriendliModel = {
 				...baseModel,
 				reasoning: true,
@@ -284,7 +284,37 @@ describe("Friendli Fetchers", () => {
 
 			const result = parseFriendliModel({ id: "test/model", model })
 
-			expect(result.supportsReasoningEffort).toEqual([])
+			// All effort values filtered out -- instead of an empty array that would
+			// default to "high" (unsupported by the API), fall back to binary reasoning.
+			expect(result.supportsReasoningBinary).toBe(true)
+			expect(result.supportsReasoningEffort).toBeUndefined()
+			expect(result.reasoningEffort).toBeUndefined()
+		})
+
+		it("returns undefined for non-reasoning model with all effort values filtered", () => {
+			const model: FriendliModel = {
+				...baseModel,
+				reasoning: false,
+				reasoning_options: [{ type: "effort", values: ["ultracode", "default"] }],
+			}
+
+			const result = parseFriendliModel({ id: "test/model", model })
+
+			expect(result.supportsReasoningBinary).toBeUndefined()
+			expect(result.supportsReasoningEffort).toBeUndefined()
+			expect(result.reasoningEffort).toBeUndefined()
+		})
+
+		it("sets supportsMaxTokens for non-reasoning models with max_completion_tokens", () => {
+			const model: FriendliModel = {
+				...baseModel,
+				reasoning: false,
+				max_completion_tokens: 8192,
+			}
+
+			const result = parseFriendliModel({ id: "test/model", model })
+
+			expect(result.supportsMaxTokens).toBe(true)
 		})
 
 		it("omits supportsReasoningEffort for non-reasoning models", () => {

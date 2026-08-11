@@ -1291,7 +1291,7 @@ describe("useSelectedModel", () => {
 				},
 				isLoading: false,
 				isError: false,
-			} as any)
+			} as unknown as ReturnType<typeof useRouterModels>)
 
 			mockUseOpenRouterModelProviders.mockReturnValue({
 				data: {},
@@ -1335,7 +1335,7 @@ describe("useSelectedModel", () => {
 				},
 				isLoading: false,
 				isError: false,
-			} as any)
+			} as unknown as ReturnType<typeof useRouterModels>)
 
 			const apiConfiguration: ProviderSettings = {
 				apiProvider: providerIdentifiers.friendli,
@@ -1348,6 +1348,76 @@ describe("useSelectedModel", () => {
 			expect(result.current.provider).toBe(providerIdentifiers.friendli)
 			expect(result.current.id).toBe("zai-org/GLM-5.1")
 			expect(result.current.info).toEqual(dynamicModelInfo)
+		})
+		it("preserves saved static model when router data is empty", () => {
+			mockUseRouterModels.mockReturnValue({
+				data: {
+					openrouter: {},
+					requesty: {},
+					litellm: {},
+					friendli: {},
+				},
+				isLoading: false,
+				isError: false,
+			} as unknown as ReturnType<typeof useRouterModels>)
+
+			const apiConfiguration: ProviderSettings = {
+				apiProvider: providerIdentifiers.friendli,
+				apiModelId: "zai-org/GLM-5.2",
+			}
+
+			const wrapper = createWrapper()
+			const { result } = renderHook(() => useSelectedModel(apiConfiguration), { wrapper })
+
+			expect(result.current.id).toBe("zai-org/GLM-5.2")
+			expect(result.current.info).toEqual(friendliModels["zai-org/GLM-5.2"])
+		})
+
+		it("falls back to default model when router is empty and no saved model", () => {
+			mockUseRouterModels.mockReturnValue({
+				data: {
+					openrouter: {},
+					requesty: {},
+					litellm: {},
+					friendli: {},
+				},
+				isLoading: false,
+				isError: false,
+			} as unknown as ReturnType<typeof useRouterModels>)
+
+			const apiConfiguration: ProviderSettings = {
+				apiProvider: providerIdentifiers.friendli,
+			}
+
+			const wrapper = createWrapper()
+			const { result } = renderHook(() => useSelectedModel(apiConfiguration), { wrapper })
+
+			expect(result.current.id).toBe(friendliDefaultModelId)
+			expect(result.current.info).toEqual(friendliModels[friendliDefaultModelId])
+		})
+
+		it("falls back to default when saved model is not in static seed", () => {
+			mockUseRouterModels.mockReturnValue({
+				data: {
+					openrouter: {},
+					requesty: {},
+					litellm: {},
+					friendli: {},
+				},
+				isLoading: false,
+				isError: false,
+			} as unknown as ReturnType<typeof useRouterModels>)
+
+			const apiConfiguration: ProviderSettings = {
+				apiProvider: providerIdentifiers.friendli,
+				apiModelId: "nonexistent/model",
+			}
+
+			const wrapper = createWrapper()
+			const { result } = renderHook(() => useSelectedModel(apiConfiguration), { wrapper })
+
+			expect(result.current.id).toBe(friendliDefaultModelId)
+			expect(result.current.info).toEqual(friendliModels[friendliDefaultModelId])
 		})
 	})
 

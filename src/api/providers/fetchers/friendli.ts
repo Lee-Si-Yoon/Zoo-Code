@@ -119,7 +119,16 @@ function buildSupportsReasoningEffort(
 				filtered.push(v as KnownReasoningEffort)
 			}
 		}
-		return filtered
+
+		// If the API provided effort values but none survived filtering (all were
+		// "default" or unknown), fall back to binary reasoning instead of an
+		// empty array — an empty effort list would later default to "high",
+		// which the API does not accept for this model.
+		if (filtered.length > 0) {
+			return filtered
+		}
+		// All values filtered out — treat as binary reasoning.
+		return reasoning ? true : undefined
 	}
 
 	// Reasoning-capable model without a discrete effort enum — the handler can
@@ -229,10 +238,10 @@ export const parseFriendliModel = ({ id, model }: { id: string; model: FriendliM
 	}
 
 	// Friendli's chat models honour a configurable max-output slider
-	// (supportsMaxTokens). All Friendli models accept the max_tokens param,
-	// so surface the slider for every reasoning-capable model, not just
-	// controllable-reasoning ones with discrete effort enums.
-	if (model.reasoning && model.max_completion_tokens) {
+	// (supportsMaxTokens). All Friendli chat models accept the max_tokens param,
+	// so surface the slider for any model that has a max_completion_tokens value,
+	// not just reasoning-capable ones.
+	if (model.max_completion_tokens) {
 		modelInfo.supportsMaxTokens = true
 	}
 
