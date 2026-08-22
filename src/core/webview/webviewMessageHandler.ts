@@ -1160,11 +1160,11 @@ export const webviewMessageHandler = async (
 						apiKey: apiConfiguration.unboundApiKey,
 					},
 				},
-				{ key: providerIdentifiers.friendli, options: { provider: providerIdentifiers.friendli } },
 				{
 					key: providerIdentifiers.vercelAiGateway,
 					options: { provider: providerIdentifiers.vercelAiGateway },
 				},
+				{ key: providerIdentifiers.friendli, options: { provider: providerIdentifiers.friendli } },
 				{
 					key: providerIdentifiers.zooGateway,
 					options: {

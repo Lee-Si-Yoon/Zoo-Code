@@ -7,6 +7,7 @@ import {
 	friendliModels,
 	type ModelInfo,
 	openAiModelInfoSaneDefaults,
+	providerIdentifiers,
 } from "@roo-code/types"
 import type { ModelRecord } from "@roo-code/types"
 
@@ -106,7 +107,7 @@ export class FriendliHandler extends BaseOpenAiCompatibleProvider<FriendliModelI
 		// Load dynamic models asynchronously to populate the cache before
 		// getModel() is called. Fire-and-forget; errors are logged by the
 		// cache layer and we gracefully fall back to static models.
-		getModels({ provider: "friendli" })
+		getModels({ provider: providerIdentifiers.friendli })
 			.then((models) => {
 				this.dynamicModels = models
 				this.dynamicModelsLoaded = true

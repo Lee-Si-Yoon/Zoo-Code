@@ -274,7 +274,7 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 		case providerIdentifiers.kimiCode:
 			models = await getKimiCodeModels(options.apiKey)
 			break
-		case "friendli":
+		case providerIdentifiers.friendli:
 			models = await getFriendliModels()
 			break
 		default: {
