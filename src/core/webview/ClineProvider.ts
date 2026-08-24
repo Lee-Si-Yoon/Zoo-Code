@@ -303,7 +303,7 @@ export class ClineProvider
 
 	public isViewLaunched = false
 	public settingsImportedAt?: number
-	public readonly latestAnnouncementId = "aug-2026-v3.78.0-models-nanogpt-reliability" // v3.78.0 new models, NanoGPT, and provider/task reliability
+	public readonly latestAnnouncementId = "aug-2026-v3.80.0-allowlists-models-reliability" // v3.80.0 file allowlists, models, and workflow reliability
 	public readonly providerSettingsManager: ProviderSettingsManager
 	public readonly customModesManager: CustomModesManager
 
@@ -2535,9 +2535,11 @@ export class ClineProvider
 			customInstructions,
 			alwaysAllowReadOnly,
 			alwaysAllowReadOnlyOutsideWorkspace,
+			allowedReadFiles,
 			alwaysAllowWrite,
 			alwaysAllowWriteOutsideWorkspace,
 			alwaysAllowWriteProtected,
+			allowedWriteFiles,
 			alwaysAllowExecute,
 			destructiveCommandGuardEnabled,
 			allowedCommands,
@@ -2685,9 +2687,11 @@ export class ClineProvider
 			customInstructions,
 			alwaysAllowReadOnly: alwaysAllowReadOnly ?? false,
 			alwaysAllowReadOnlyOutsideWorkspace: alwaysAllowReadOnlyOutsideWorkspace ?? false,
+			allowedReadFiles: allowedReadFiles ?? [],
 			alwaysAllowWrite: alwaysAllowWrite ?? false,
 			alwaysAllowWriteOutsideWorkspace: alwaysAllowWriteOutsideWorkspace ?? false,
 			alwaysAllowWriteProtected: alwaysAllowWriteProtected ?? false,
+			allowedWriteFiles: allowedWriteFiles ?? [],
 			alwaysAllowExecute: alwaysAllowExecute ?? false,
 			destructiveCommandGuardEnabled,
 			alwaysAllowMcp: alwaysAllowMcp ?? false,
@@ -2921,9 +2925,11 @@ export class ClineProvider
 			apiModelId: stateValues.apiModelId,
 			alwaysAllowReadOnly: stateValues.alwaysAllowReadOnly ?? false,
 			alwaysAllowReadOnlyOutsideWorkspace: stateValues.alwaysAllowReadOnlyOutsideWorkspace ?? false,
+			allowedReadFiles: stateValues.allowedReadFiles ?? [],
 			alwaysAllowWrite: stateValues.alwaysAllowWrite ?? false,
 			alwaysAllowWriteOutsideWorkspace: stateValues.alwaysAllowWriteOutsideWorkspace ?? false,
 			alwaysAllowWriteProtected: stateValues.alwaysAllowWriteProtected ?? false,
+			allowedWriteFiles: stateValues.allowedWriteFiles ?? [],
 			alwaysAllowExecute: stateValues.alwaysAllowExecute ?? false,
 			destructiveCommandGuardEnabled:
 				stateValues.destructiveCommandGuardEnabled ?? DEFAULT_DESTRUCTIVE_COMMAND_GUARD_ENABLED,
