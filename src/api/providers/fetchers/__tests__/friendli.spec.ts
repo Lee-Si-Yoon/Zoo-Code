@@ -212,6 +212,18 @@ describe("Friendli Fetchers", () => {
 			expect(result.cacheReadsPrice).toBe(0.3)
 		})
 
+		it("falls back to max_completion_tokens for contextWindow when context_length is missing", () => {
+			const { context_length: _unused, ...modelWithoutContextLength } = baseModel
+
+			const result = parseFriendliModel({ id: "test/model", model: modelWithoutContextLength })
+
+			// contextWindow must never be 0 here — a 0 window makes
+			// getModelMaxOutputTokens clamp maxTokens to 0, and the API
+			// rejects max_tokens: 0 with a 400.
+			expect(result.contextWindow).toBe(8000)
+			expect(result.contextWindow).not.toBe(0)
+		})
+
 		it("detects image support from input_modalities", () => {
 			const visionModel: FriendliModel = {
 				...baseModel,

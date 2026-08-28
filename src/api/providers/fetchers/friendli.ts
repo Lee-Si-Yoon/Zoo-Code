@@ -207,7 +207,10 @@ export const parseFriendliModel = ({ id, model }: { id: string; model: FriendliM
 
 	const modelInfo: ModelInfo = {
 		maxTokens: model.max_completion_tokens ?? 0,
-		contextWindow: model.context_length ?? 0,
+		// Fall back to max_completion_tokens when context_length is missing —
+		// leaving this at 0 makes getModelMaxOutputTokens clamp maxTokens to
+		// 0 (20% of a 0 window), which the API then rejects with a 400.
+		contextWindow: model.context_length ?? model.max_completion_tokens ?? 0,
 		supportsImages,
 		supportsPromptCache,
 		inputPrice: parseApiPrice(inputPriceStr),
