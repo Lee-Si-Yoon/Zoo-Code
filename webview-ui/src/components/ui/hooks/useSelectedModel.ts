@@ -397,6 +397,13 @@ function getSelectedModel({
 				if (savedId && staticInfo) {
 					return { id: savedId, info: staticInfo }
 				}
+				// Saved id is dynamic-only (not in the static seed) and the
+				// router hasn't loaded yet — keep the requested id instead of
+				// substituting the default, mirroring FriendliHandler.getModel()
+				// on the extension host side during the same load window.
+				if (savedId) {
+					return { id: savedId, info: undefined }
+				}
 				return { id: defaultModelId, info: friendliModels[defaultModelId as keyof typeof friendliModels] }
 			}
 

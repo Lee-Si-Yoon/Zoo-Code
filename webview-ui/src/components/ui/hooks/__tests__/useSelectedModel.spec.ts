@@ -1396,7 +1396,33 @@ describe("useSelectedModel", () => {
 			expect(result.current.info).toEqual(friendliModels[friendliDefaultModelId])
 		})
 
-		it("falls back to default when saved model is not in static seed", () => {
+		it("falls back to default when saved model is not in static seed and no saved id", () => {
+			mockUseRouterModels.mockReturnValue({
+				data: {
+					openrouter: {},
+					requesty: {},
+					litellm: {},
+					friendli: {},
+				},
+				isLoading: false,
+				isError: false,
+			} as unknown as ReturnType<typeof useRouterModels>)
+
+			const apiConfiguration: ProviderSettings = {
+				apiProvider: providerIdentifiers.friendli,
+			}
+
+			const wrapper = createWrapper()
+			const { result } = renderHook(() => useSelectedModel(apiConfiguration), { wrapper })
+
+			expect(result.current.id).toBe(friendliDefaultModelId)
+			expect(result.current.info).toEqual(friendliModels[friendliDefaultModelId])
+		})
+
+		it("preserves a dynamic-only saved id with undefined info while router is still empty", () => {
+			// Mirrors FriendliHandler.getModel() on the extension host: during
+			// the loading window a saved id that isn't in the static seed
+			// keeps its id instead of silently becoming the default model.
 			mockUseRouterModels.mockReturnValue({
 				data: {
 					openrouter: {},
@@ -1416,8 +1442,39 @@ describe("useSelectedModel", () => {
 			const wrapper = createWrapper()
 			const { result } = renderHook(() => useSelectedModel(apiConfiguration), { wrapper })
 
-			expect(result.current.id).toBe(friendliDefaultModelId)
-			expect(result.current.info).toEqual(friendliModels[friendliDefaultModelId])
+			expect(result.current.id).toBe("nonexistent/model")
+			expect(result.current.info).toBeUndefined()
+		})
+
+		it("prefers dynamic router info over static info for a model id present in both", () => {
+			const staticGlm52 = friendliModels["zai-org/GLM-5.2"]
+			const dynamicGlm52: ModelInfo = {
+				...staticGlm52,
+				description: "Dynamic GLM-5.2 from /v1/models",
+				inputPrice: 999,
+			}
+			mockUseRouterModels.mockReturnValue({
+				data: {
+					openrouter: {},
+					requesty: {},
+					litellm: {},
+					friendli: { "zai-org/GLM-5.2": dynamicGlm52 },
+				},
+				isLoading: false,
+				isError: false,
+			} as unknown as ReturnType<typeof useRouterModels>)
+
+			const apiConfiguration: ProviderSettings = {
+				apiProvider: providerIdentifiers.friendli,
+				apiModelId: "zai-org/GLM-5.2",
+			}
+
+			const wrapper = createWrapper()
+			const { result } = renderHook(() => useSelectedModel(apiConfiguration), { wrapper })
+
+			expect(result.current.id).toBe("zai-org/GLM-5.2")
+			expect(result.current.info).toEqual(dynamicGlm52)
+			expect(result.current.info).not.toEqual(staticGlm52)
 		})
 	})
 
