@@ -1,6 +1,6 @@
 import React from "react"
 import { render, screen, fireEvent } from "@/utils/test-utils"
-import { type ProviderSettings, friendliModels } from "@roo-code/types"
+import { type ProviderSettings, type RouterModels, friendliModels } from "@roo-code/types"
 
 import { Friendli } from "../Friendli"
 
@@ -101,5 +101,22 @@ describe("Friendli provider settings", () => {
 		})
 		// When routerModels is not provided, ModelPicker should receive the static fallback
 		expect(mockModelPickerProps.models).toEqual(friendliModels)
+	})
+
+	it("passes the router catalog to ModelPicker when routerModels.friendli is non-empty", () => {
+		const dynamicModels = {
+			"zai-org/GLM-5.2": { ...friendliModels["zai-org/GLM-5.2"], description: "Dynamic GLM-5.2" },
+			"deepseek-ai/DeepSeek-V3.2": { ...friendliModels["zai-org/GLM-5.2"], description: "Dynamic DeepSeek" },
+		}
+		const apiConfig = { apiProvider: "friendli" } as ProviderSettings
+		render(
+			<Friendli
+				apiConfiguration={apiConfig}
+				setApiConfigurationField={vi.fn()}
+				routerModels={{ friendli: dynamicModels } as Partial<RouterModels> as RouterModels}
+			/>,
+		)
+		expect(mockModelPickerProps.models).toEqual(dynamicModels)
+		expect(mockModelPickerProps.models).not.toEqual(friendliModels)
 	})
 })
