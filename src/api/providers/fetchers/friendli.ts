@@ -185,6 +185,24 @@ export async function getFriendliModels(_options?: ApiHandlerOptions): Promise<R
 }
 
 /**
+ * isDeprecated
+ *
+ * `true` only once the deprecation date has actually passed. A future date
+ * just announces the upcoming removal, so the model stays selectable until
+ * then (ModelPicker filters deprecated models out of the dropdown but keeps
+ * the currently selected one visible). An unparseable date fails safe — the
+ * provider flagged the model, so treat it as already removed.
+ */
+function isDeprecated(deprecationDate: string | null | undefined): boolean {
+	if (!deprecationDate) {
+		return false
+	}
+
+	const timestamp = new Date(deprecationDate).getTime()
+	return Number.isNaN(timestamp) || timestamp <= Date.now()
+}
+
+/**
  * parseFriendliModel
  *
  * Pure transform from a Friendli API model entry to a `ModelInfo`. Factored out
@@ -223,7 +241,10 @@ export const parseFriendliModel = ({ id, model }: { id: string; model: FriendliM
 		description: model.description && model.description.trim() !== "" ? model.description : undefined,
 	}
 
-	if (model.deprecation_date) {
+	// Deprecated only once the date has passed — a future deprecation_date is
+	// an announcement, not an enforcement. Selectability is governed downstream
+	// by ModelPicker's `deprecated` filter.
+	if (isDeprecated(model.deprecation_date)) {
 		modelInfo.deprecated = true
 	}
 

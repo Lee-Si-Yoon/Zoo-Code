@@ -361,10 +361,49 @@ describe("Friendli Fetchers", () => {
 			expect(result.supportsReasoningEffort).toBeUndefined()
 		})
 
-		it("marks deprecated models", () => {
+		it("does not mark models whose deprecation date is in the future", () => {
 			const model: FriendliModel = {
 				...baseModel,
-				deprecation_date: "2026-08-05T00:00:00Z",
+				deprecation_date: "2099-01-01T00:00:00Z",
+			}
+
+			const result = parseFriendliModel({ id: "test/model", model })
+
+			expect(result.deprecated).toBeUndefined()
+		})
+
+		it("marks models whose deprecation date has passed", () => {
+			const model: FriendliModel = {
+				...baseModel,
+				deprecation_date: "2000-01-01T00:00:00Z",
+			}
+
+			const result = parseFriendliModel({ id: "test/model", model })
+
+			expect(result.deprecated).toBe(true)
+		})
+
+		it("does not mark models without a deprecation date", () => {
+			const result = parseFriendliModel({ id: "test/model", model: baseModel })
+
+			expect(result.deprecated).toBeUndefined()
+		})
+
+		it("does not mark models with a null deprecation date", () => {
+			const model: FriendliModel = {
+				...baseModel,
+				deprecation_date: null,
+			}
+
+			const result = parseFriendliModel({ id: "test/model", model })
+
+			expect(result.deprecated).toBeUndefined()
+		})
+
+		it("fails safe on malformed deprecation dates (treated as deprecated)", () => {
+			const model: FriendliModel = {
+				...baseModel,
+				deprecation_date: "not-a-date",
 			}
 
 			const result = parseFriendliModel({ id: "test/model", model })
