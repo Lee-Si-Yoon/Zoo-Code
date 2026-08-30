@@ -207,10 +207,13 @@ export const parseFriendliModel = ({ id, model }: { id: string; model: FriendliM
 
 	const modelInfo: ModelInfo = {
 		maxTokens: model.max_completion_tokens ?? 0,
-		// Fall back to max_completion_tokens when context_length is missing —
-		// leaving this at 0 makes getModelMaxOutputTokens clamp maxTokens to
-		// 0 (20% of a 0 window), which the API then rejects with a 400.
-		contextWindow: model.context_length ?? model.max_completion_tokens ?? 0,
+		// Fall back to max_completion_tokens * 5 when context_length is missing.
+		// getModelMaxOutputTokens clamps maxTokens to ceil(contextWindow * 0.2)
+		// (src/shared/api.ts), so using max_completion_tokens directly as the
+		// window would clamp maxTokens down to 20% of itself — e.g. an 8000
+		// max_completion_tokens model would send max_tokens: 1600 instead of
+		// 8000. Multiplying by 5 inverts that ratio so the clamp is a no-op.
+		contextWindow: model.context_length ?? (model.max_completion_tokens ? model.max_completion_tokens * 5 : 0),
 		supportsImages,
 		supportsPromptCache,
 		inputPrice: parseApiPrice(inputPriceStr),

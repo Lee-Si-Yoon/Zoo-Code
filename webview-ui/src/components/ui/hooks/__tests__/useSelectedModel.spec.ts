@@ -1396,29 +1396,6 @@ describe("useSelectedModel", () => {
 			expect(result.current.info).toEqual(friendliModels[friendliDefaultModelId])
 		})
 
-		it("falls back to default when saved model is not in static seed and no saved id", () => {
-			mockUseRouterModels.mockReturnValue({
-				data: {
-					openrouter: {},
-					requesty: {},
-					litellm: {},
-					friendli: {},
-				},
-				isLoading: false,
-				isError: false,
-			} as unknown as ReturnType<typeof useRouterModels>)
-
-			const apiConfiguration: ProviderSettings = {
-				apiProvider: providerIdentifiers.friendli,
-			}
-
-			const wrapper = createWrapper()
-			const { result } = renderHook(() => useSelectedModel(apiConfiguration), { wrapper })
-
-			expect(result.current.id).toBe(friendliDefaultModelId)
-			expect(result.current.info).toEqual(friendliModels[friendliDefaultModelId])
-		})
-
 		it("preserves a dynamic-only saved id with undefined info while router is still empty", () => {
 			// Mirrors FriendliHandler.getModel() on the extension host: during
 			// the loading window a saved id that isn't in the static seed

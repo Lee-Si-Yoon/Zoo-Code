@@ -2,6 +2,8 @@
 
 import axios from "axios"
 
+import { getModelMaxOutputTokens } from "../../../../shared/api"
+
 import { getFriendliModels, parseFriendliModel } from "../friendli"
 import type { FriendliModel } from "../friendli"
 
@@ -212,16 +214,35 @@ describe("Friendli Fetchers", () => {
 			expect(result.cacheReadsPrice).toBe(0.3)
 		})
 
-		it("falls back to max_completion_tokens for contextWindow when context_length is missing", () => {
+		it("falls back to max_completion_tokens * 5 for contextWindow when context_length is missing", () => {
 			const { context_length: _unused, ...modelWithoutContextLength } = baseModel
 
 			const result = parseFriendliModel({ id: "test/model", model: modelWithoutContextLength })
 
 			// contextWindow must never be 0 here — a 0 window makes
 			// getModelMaxOutputTokens clamp maxTokens to 0, and the API
-			// rejects max_tokens: 0 with a 400.
-			expect(result.contextWindow).toBe(8000)
+			// rejects max_tokens: 0 with a 400. The *5 multiplier inverts the
+			// 20% clamp so max_completion_tokens survives unclamped (see next test).
+			expect(result.contextWindow).toBe(40000)
 			expect(result.contextWindow).not.toBe(0)
+		})
+
+		it("keeps max_completion_tokens unclamped by getModelMaxOutputTokens when context_length is missing", () => {
+			// Regression test for the actual bug the *5 fallback fixes: without
+			// it, contextWindow === maxTokens === max_completion_tokens, and
+			// getModelMaxOutputTokens's 20% clamp would silently cut max_tokens
+			// to 20% of what the model can actually produce.
+			const { context_length: _unused, ...modelWithoutContextLength } = baseModel
+
+			const result = parseFriendliModel({ id: "test/model", model: modelWithoutContextLength })
+			const maxOutputTokens = getModelMaxOutputTokens({
+				modelId: "test/model",
+				model: result,
+				settings: {},
+				format: "openai",
+			})
+
+			expect(maxOutputTokens).toBe(8000)
 		})
 
 		it("detects image support from input_modalities", () => {
