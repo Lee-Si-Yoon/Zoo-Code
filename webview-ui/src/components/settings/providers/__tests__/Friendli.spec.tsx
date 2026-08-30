@@ -119,4 +119,20 @@ describe("Friendli provider settings", () => {
 		expect(mockModelPickerProps.models).toEqual(dynamicModels)
 		expect(mockModelPickerProps.models).not.toEqual(friendliModels)
 	})
+
+	it("falls back to static models when routerModels.friendli is an empty record", () => {
+		// requestRouterModels posts {} for a failed/empty Friendli fetch; {}
+		// is non-nullish, so a ?? guard alone would hand the picker zero
+		// models. The settings component must treat the empty record as
+		// "no dynamic list" and keep the static fallback.
+		const apiConfig = { apiProvider: "friendli" } as ProviderSettings
+		render(
+			<Friendli
+				apiConfiguration={apiConfig}
+				setApiConfigurationField={vi.fn()}
+				routerModels={{ friendli: {} } as Partial<RouterModels> as RouterModels}
+			/>,
+		)
+		expect(mockModelPickerProps.models).toEqual(friendliModels)
+	})
 })

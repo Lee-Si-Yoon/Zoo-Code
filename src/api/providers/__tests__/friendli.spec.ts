@@ -566,10 +566,14 @@ describe("FriendliHandler — dynamic model loading", () => {
 		mockGetModels.mockRejectedValue(new Error("Network error"))
 
 		const handler = new FriendliHandler({
+			apiModelId: "friendli-only/future-model",
 			friendliApiKey: "test-key",
 		})
 
-		// After rejection, getModel() falls back to the default model.
+		// A dynamic-only apiModelId makes the fallback observable: while the
+		// load is still pending, getModel() preserves the requested id, so the
+		// assertion below can only pass once the rejection handler has marked
+		// the load settled and the id fell back to the default.
 		await vi.waitFor(() => {
 			expect(handler.getModel().id).toBe(friendliDefaultModelId)
 		})
