@@ -372,10 +372,10 @@
 		"title": "Zoo Code {{version}} Dirilis",
 		"support": "Dukung Zoo Code dengan memberi kami bintang di <githubLink>GitHub</githubLink>.",
 		"release": {
-			"heading": "Yang Baru:",
-			"highlight1": "🤖 Coba GLM-5.3-Flash dan Gemini 3.7 Flash dengan diskon 50% selama 2 minggu, dan dapatkan MiniMax M3 sepenuhnya GRATIS bagi pengguna dengan saldo di Zoo Gateway baru: <modelsLink>https://zoocode.dev/models</modelsLink>",
-			"highlight2": "Model baru — GLM-5.3-Flash kini tersedia melalui Z AI.",
-			"highlight3": "Perbaikan keandalan — persetujuan subtask dipulihkan, output tool kosong pada Vertex Gemini 3.7, kegagalan startup terminal, error background service, dan keterbacaan tema turut diperbaiki."
+			"heading": "Yang baru di Zoo Code v3.88.0",
+			"highlight1": "✨ Dukungan provider dan model: Gunakan Grok Build dan dukungan model kustom yang lebih baik. Rilis ini juga memperbaiki batas model Bedrock dan mengirim pengaturan verbosity Codex.",
+			"highlight2": "🧭 Keandalan task: Rilis ini memperbaiki penanganan pembatalan, kelanjutan tool turn, dan penyimpanan pesan task.",
+			"highlight3": "⚡ Pengeditan dan chat lebih cepat: Penulisan file tidak lagi memakai penundaan buatan secara bawaan. Pesan chat membawa lebih sedikit data file, dan code action mencapai chat yang terakhir aktif."
 		},
 		"cloudAgents": {
 			"heading": "Baru di Cloud:",

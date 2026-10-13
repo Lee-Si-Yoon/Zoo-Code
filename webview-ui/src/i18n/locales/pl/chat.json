@@ -343,10 +343,10 @@
 		"title": "Zoo Code {{version}} wydany",
 		"support": "Wesprzyj Zoo Code, dając nam gwiazdkę na <githubLink>GitHub</githubLink>.",
 		"release": {
-			"heading": "Co nowego:",
-			"highlight1": "🤖 Wypróbuj GLM-5.3-Flash i Gemini 3.7 Flash ze 50% zniżką przez 2 tygodnie oraz MiniMax M3 całkowicie za darmo dla użytkowników z saldem w nowym Zoo Gateway: <modelsLink>https://zoocode.dev/models</modelsLink>",
-			"highlight2": "Nowy model — GLM-5.3-Flash jest teraz dostępny przez Z AI.",
-			"highlight3": "Poprawki niezawodności — przywrócono zatwierdzenia podzadań, naprawiono puste dane wyjściowe narzędzi w Vertex Gemini 3.7, błędy uruchamiania terminala i błędy usług w tle oraz poprawiono czytelność w różnych motywach IDE."
+			"heading": "Nowości w Zoo Code v3.88.0",
+			"highlight1": "✨ Obsługa dostawców i modeli: Korzystaj z Grok Build oraz ulepszonej obsługi modeli niestandardowych. Ta wersja poprawia także limity modeli Bedrock i wysyła ustawienie szczegółowości Codex.",
+			"highlight2": "🧭 Niezawodność zadań: Ta wersja poprawia obsługę przerywania, kontynuowanie tur narzędzi oraz zapisywanie wiadomości zadań.",
+			"highlight3": "⚡ Szybsza edycja i czat: Zapisywanie plików nie używa już domyślnie sztucznych opóźnień. Wiadomości czatu zawierają mniej danych plików, a akcje kodu trafiają do ostatnio aktywnego czatu."
 		},
 		"cloudAgents": {
 			"heading": "Nowości w chmurze:",

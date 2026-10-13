@@ -47,12 +47,11 @@ Zoo Code parteix de la base creada per Roo Code i continua ampliant-la amb:
 - **Fluxos de terminal i edició més fiables** — correccions per a la finalització prematura del terminal, les condicions de cursa en l'estat de les tasques, la gestió del context, l'edició de diff i l'ús d'eines específiques de cada proveïdor.
 - **Més control sobre el teu espai de treball** — gestió de regles, restriccions MCP per mode, controls de rutes multiarrel, opcions de raonament dels models i accions per revisar els canvis en completar una tasca.
 
-## Novetats a la v3.80.1
+## Novetats a la v3.88.0
 
-🤖 Prova GLM-5.3-Flash i Gemini 3.7 Flash amb un 50 % de descompte durant 2 setmanes, i MiniMax M3 totalment GRATUÏT per als usuaris amb saldo al nou Zoo Gateway. https://zoocode.dev/models
-
-- **Model nou** — GLM-5.3-Flash ja està disponible mitjançant Z AI.
-- **Correccions de fiabilitat** — aprovacions de subtasques restaurades, sortida d'eines buida de Vertex Gemini 3.7, errors d'inici del terminal, errors del servei en segon pla i la llegibilitat dels temes.
+- ✨ **Suport de proveïdors i models:** Fes servir Grok Build i un suport millorat de models personalitzats. Aquesta versió també corregeix els límits de models de Bedrock i envia la configuració de verbositat de Codex.
+- 🧭 **Fiabilitat de les tasques:** Aquesta versió corregeix la gestió de les cancel·lacions, la continuació dels torns d'eines i el desat dels missatges de tasca.
+- ⚡ **Edició i xat més ràpids:** Les escriptures de fitxers ja no utilitzen retards artificials per defecte. Els missatges del xat porten menys dades de fitxers, i les accions de codi arriben a l'últim xat actiu.
 
 ## Què pot fer Zoo Code per TU?
 

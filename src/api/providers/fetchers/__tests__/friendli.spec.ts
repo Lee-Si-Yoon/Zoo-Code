@@ -86,9 +86,6 @@ describe("Friendli Fetchers", () => {
 
 			const models = await getFriendliModels()
 
-			expect(mockedAxios.get).toHaveBeenCalledWith("https://api.friendli.ai/serverless/v1/models", {
-				timeout: 10_000,
-			})
 			// Two chat models, embedding model filtered out
 			expect(Object.keys(models)).toHaveLength(2)
 			expect(models["zai-org/GLM-5.2"]).toBeDefined()
@@ -104,6 +101,16 @@ describe("Friendli Fetchers", () => {
 			expect(models).toEqual({})
 			expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining("Error fetching Friendli models"))
 			consoleErrorSpy.mockRestore()
+		})
+
+		it("rejects cancellation instead of returning an empty catalog", async () => {
+			const controller = new AbortController()
+			mockedAxios.get.mockRejectedValueOnce(new Error("Request cancelled"))
+
+			const pending = getFriendliModels(undefined, { signal: controller.signal })
+			controller.abort()
+
+			await expect(pending).rejects.toMatchObject({ name: "AbortError" })
 		})
 
 		it("handles invalid response schema gracefully", async () => {

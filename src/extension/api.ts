@@ -14,6 +14,7 @@ import {
 	type ProviderSettingsEntry,
 	type TaskEvent,
 	type CreateTaskOptions,
+	type TaskApiConversationHistorySequence,
 	type WebviewThemeFixture,
 	RooCodeEventName,
 	TaskCommandName,
@@ -25,17 +26,16 @@ import { IpcServer } from "@roo-code/ipc"
 
 import { Package } from "../shared/package"
 import type { Mode } from "../shared/modes"
-import { ClineProvider } from "../core/webview/ClineProvider"
+import type { ClineProvider } from "../core/webview/ClineProvider"
+import type { ClineProviderFactory } from "../core/webview/ClineProviderFactory"
 import { Terminal } from "../integrations/terminal/Terminal"
 import { TerminalRegistry } from "../integrations/terminal/TerminalRegistry"
-import { openClineInNewTab } from "../activate/registerCommands"
 import { getCommands } from "../services/command/commands"
 import { getModels } from "../api/providers/fetchers/modelCache"
 
 export class API extends EventEmitter<RooCodeEvents> implements RooCodeAPI {
 	private readonly outputChannel: vscode.OutputChannel
 	private readonly sidebarProvider: ClineProvider
-	private readonly context: vscode.ExtensionContext
 	private readonly ipc?: IpcServer
 	private readonly log: (...args: unknown[]) => void
 	private logfile?: string
@@ -43,6 +43,7 @@ export class API extends EventEmitter<RooCodeEvents> implements RooCodeAPI {
 	constructor(
 		outputChannel: vscode.OutputChannel,
 		provider: ClineProvider,
+		private readonly providerFactory: ClineProviderFactory,
 		socketPath?: string,
 		enableLogging = false,
 	) {
@@ -50,7 +51,6 @@ export class API extends EventEmitter<RooCodeEvents> implements RooCodeAPI {
 
 		this.outputChannel = outputChannel
 		this.sidebarProvider = provider
-		this.context = provider.context
 
 		if (enableLogging) {
 			this.log = (...args: unknown[]) => {
@@ -186,7 +186,7 @@ export class API extends EventEmitter<RooCodeEvents> implements RooCodeAPI {
 			await vscode.commands.executeCommand("workbench.action.files.revert")
 			await vscode.commands.executeCommand("workbench.action.closeAllEditors")
 
-			provider = await openClineInNewTab({ context: this.context, outputChannel: this.outputChannel })
+			provider = await this.providerFactory.createInNewTab()
 			this.registerListeners(provider)
 		} else {
 			await vscode.commands.executeCommand(`${Package.name}.SidebarProvider.focus`)
@@ -199,8 +199,13 @@ export class API extends EventEmitter<RooCodeEvents> implements RooCodeAPI {
 		await provider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
 		await provider.postMessageToWebview({ type: "invoke", invoke: "newChat", text, images })
 
+		// API-driven tasks never stop to ask the user, so the hard stop is
+		// effectively unlimited. The soft repetition tier is disabled too:
+		// without a reachable hard stop it would reject every identical call
+		// with no escalation.
 		const options: CreateTaskOptions = {
 			consecutiveMistakeLimit: Number.MAX_SAFE_INTEGER,
+			toolRepetitionSoftLimit: 0,
 		}
 
 		const task = await provider.createTask(text, images, undefined, options, configuration)
@@ -249,6 +254,56 @@ export class API extends EventEmitter<RooCodeEvents> implements RooCodeAPI {
 		} catch {
 			return 0
 		}
+	}
+
+	/** Checks persisted turn ordering without exposing conversation contents to tests. */
+	public async hasTaskApiConversationHistorySequence(
+		taskId: string,
+		sequence: TaskApiConversationHistorySequence,
+	): Promise<boolean> {
+		let apiConversationHistory: Awaited<ReturnType<ClineProvider["getTaskWithId"]>>["apiConversationHistory"]
+		try {
+			const task = await this.sidebarProvider.getTaskWithId(taskId)
+			apiConversationHistory = task.apiConversationHistory
+		} catch {
+			return false
+		}
+
+		const userTurnIndex = apiConversationHistory.findIndex(
+			(message) =>
+				message.role === "user" &&
+				Array.isArray(message.content) &&
+				message.content.some((block) => block.type === "text" && block.text.includes(sequence.userText)),
+		)
+		if (userTurnIndex < 0) return false
+
+		// Search all assistant turns that belong to the same generation: between
+		// this user turn and the next genuine user text turn (or end of history).
+		// tool_result messages also use role:"user", so we must skip them —
+		// stopping at a tool_result would cut the search short before a later
+		// attempt_completion in the same generation.
+		const nextUserIndex = apiConversationHistory.findIndex(
+			(m, i) =>
+				i > userTurnIndex &&
+				m.role === "user" &&
+				Array.isArray(m.content) &&
+				m.content.some((block) => block.type === "text"),
+		)
+		const generationSlice = apiConversationHistory.slice(
+			userTurnIndex + 1,
+			nextUserIndex < 0 ? undefined : nextUserIndex,
+		)
+		return generationSlice.some(
+			(message) =>
+				message.role === "assistant" &&
+				Array.isArray(message.content) &&
+				message.content.some(
+					(block) =>
+						block.type === "tool_use" &&
+						block.name === sequence.assistantToolName &&
+						JSON.stringify(block.input).includes(sequence.assistantToolInputText),
+				),
+		)
 	}
 
 	public getCurrentTaskStack() {
@@ -338,22 +393,23 @@ export class API extends EventEmitter<RooCodeEvents> implements RooCodeAPI {
 	}
 
 	private registerListeners(provider: ClineProvider) {
+		provider.on(RooCodeEventName.TaskCompleted, async (taskId, tokenUsage, toolUsage) => {
+			const historyItem = provider.taskHistoryStore.get(taskId)
+			this.emit(RooCodeEventName.TaskCompleted, taskId, tokenUsage, toolUsage, {
+				isSubtask: !!historyItem?.parentTaskId,
+			})
+
+			await this.fileLog(
+				`[${new Date().toISOString()}] taskCompleted -> ${taskId} | ${JSON.stringify(tokenUsage, null, 2)} | ${JSON.stringify(toolUsage, null, 2)}\n`,
+			)
+		})
+
 		provider.on(RooCodeEventName.TaskCreated, (task) => {
 			// Task Lifecycle
 
 			task.on(RooCodeEventName.TaskStarted, async () => {
 				this.emit(RooCodeEventName.TaskStarted, task.taskId)
 				await this.fileLog(`[${new Date().toISOString()}] taskStarted -> ${task.taskId}\n`)
-			})
-
-			task.on(RooCodeEventName.TaskCompleted, async (_, tokenUsage, toolUsage) => {
-				this.emit(RooCodeEventName.TaskCompleted, task.taskId, tokenUsage, toolUsage, {
-					isSubtask: !!task.parentTaskId,
-				})
-
-				await this.fileLog(
-					`[${new Date().toISOString()}] taskCompleted -> ${task.taskId} | ${JSON.stringify(tokenUsage, null, 2)} | ${JSON.stringify(toolUsage, null, 2)}\n`,
-				)
 			})
 
 			task.on(RooCodeEventName.TaskAborted, () => {

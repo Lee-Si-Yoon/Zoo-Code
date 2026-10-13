@@ -343,10 +343,10 @@
 		"title": "S'ha publicat Zoo Code {{version}}",
 		"support": "Dona suport a Zoo Code fent-nos una estrella a <githubLink>GitHub</githubLink>.",
 		"release": {
-			"heading": "Novetats:",
-			"highlight1": "🤖 Prova GLM-5.3-Flash i Gemini 3.7 Flash amb un 50 % de descompte durant 2 setmanes, i MiniMax M3 totalment GRATUÏT per als usuaris amb saldo al nou Zoo Gateway: <modelsLink>https://zoocode.dev/models</modelsLink>",
-			"highlight2": "Model nou — GLM-5.3-Flash ja està disponible mitjançant Z AI.",
-			"highlight3": "Correccions de fiabilitat — aprovacions de subtasques restaurades, sortida d'eines buida de Vertex Gemini 3.7, errors d'inici del terminal, errors del servei en segon pla i la llegibilitat dels temes."
+			"heading": "Què hi ha de nou al Zoo Code v3.88.0",
+			"highlight1": "✨ Suport de proveïdors i models: Fes servir Grok Build i un suport millorat de models personalitzats. Aquesta versió també corregeix els límits de models de Bedrock i envia la configuració de verbositat de Codex.",
+			"highlight2": "🧭 Fiabilitat de les tasques: Aquesta versió corregeix la gestió de les cancel·lacions, la continuació dels torns d'eines i el desat dels missatges de tasca.",
+			"highlight3": "⚡ Edició i xat més ràpids: Les escriptures de fitxers ja no utilitzen retards artificials per defecte. Els missatges del xat porten menys dades de fitxers, i les accions de codi arriben a l'últim xat actiu."
 		},
 		"cloudAgents": {
 			"heading": "Novetats al núvol:",

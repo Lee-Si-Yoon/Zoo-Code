@@ -46,12 +46,11 @@ Zoo Code phát triển trên nền tảng do Roo Code tạo ra và tiếp tục 
 - **Workflow terminal và chỉnh sửa đáng tin cậy hơn** — sửa lỗi terminal hoàn tất quá sớm, xung đột trạng thái tác vụ, quản lý ngữ cảnh, chỉnh sửa diff và sử dụng công cụ riêng của từng provider.
 - **Kiểm soát workspace tốt hơn** — quản lý quy tắc, giới hạn MCP theo từng chế độ, kiểm soát đường dẫn multi-root, tùy chọn reasoning của model và thao tác xem lại thay đổi khi hoàn tất.
 
-## Điểm mới trong v3.80.1
+## Điểm mới trong v3.88.0
 
-🤖 Dùng thử GLM-5.3-Flash và Gemini 3.7 Flash với mức giảm giá 50% trong 2 tuần, và MiniMax M3 hoàn toàn MIỄN PHÍ cho người dùng có số dư trên Zoo Gateway mới. https://zoocode.dev/models
-
-- **Model mới** — GLM-5.3-Flash hiện đã có sẵn qua Z AI.
-- **Các bản sửa lỗi độ tin cậy** — khôi phục phê duyệt tác vụ con, sửa các lỗi đầu ra tool trống trên Vertex Gemini 3.7, lỗi khởi động terminal và lỗi dịch vụ nền, đồng thời cải thiện khả năng đọc trên các theme IDE.
+- ✨ **Hỗ trợ provider và model:** Dùng Grok Build và hỗ trợ model tùy chỉnh đã được cải thiện. Bản phát hành này cũng sửa các giới hạn model Bedrock và gửi cài đặt verbosity của Codex.
+- 🧭 **Độ tin cậy của task:** Bản phát hành này sửa cách xử lý hủy, việc tiếp tục lượt tool và việc lưu message task.
+- ⚡ **Chỉnh sửa và chat nhanh hơn:** Ghi file mặc định không còn dùng độ trễ nhân tạo. Message chat mang ít dữ liệu file hơn, và code action đến được chat hoạt động gần nhất.
 
 ## Zoo Code có thể làm gì cho BẠN?
 

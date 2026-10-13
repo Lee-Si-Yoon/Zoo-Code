@@ -46,12 +46,11 @@ Zoo Code, Roo Code की बनाई नींव पर आगे बढ़�
 - **ज़्यादा भरोसेमंद terminal और editing workflows** — terminal के समय से पहले पूरा होने, task-state race conditions, context management, diff editing और provider-specific tool use से जुड़ी समस्याओं के fixes।
 - **अपने workspace पर ज़्यादा control** — rules management, हर mode के लिए MCP restrictions, multi-root path controls, model reasoning options और completion changes की review actions।
 
-## v3.80.1 में नया क्या है
+## v3.88.0 में नया क्या है
 
-🤖 नए Zoo Gateway पर balance रखने वाले users के लिए GLM-5.3-Flash और Gemini 3.7 Flash को 2 हफ़्तों के लिए 50% छूट पर आज़माएं और MiniMax M3 बिल्कुल FREE पाएं। https://zoocode.dev/models
-
-- **नया model** — GLM-5.3-Flash अब Z AI के माध्यम से उपलब्ध है।
-- **Reliability fixes** — subtask approvals को बहाल किया गया, और Vertex Gemini 3.7 के खाली tool output, terminal startup विफलताओं, background service errors तथा theme legibility की समस्याएं ठीक की गईं।
+- ✨ **Provider और model समर्थन:** Grok Build और बेहतर custom-model समर्थन का उपयोग करें। यह release Bedrock model limits भी ठीक करती है और Codex verbosity setting भेजती है।
+- 🧭 **Task भरोसेमंदपन:** यह release cancellation handling, tool-turn continuation और task-message saving को ठीक करती है।
+- ⚡ **तेज़ editing और chat:** File writes अब डिफ़ॉल्ट रूप से कृत्रिम देरी का उपयोग नहीं करतीं। Chat messages कम file data रखते हैं, और code actions अंतिम सक्रिय chat तक पहुँचते हैं।
 
 ## Zoo Code आपके लिए क्या कर सकता है?
 

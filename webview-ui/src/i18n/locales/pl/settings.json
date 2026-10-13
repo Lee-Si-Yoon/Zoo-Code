@@ -346,6 +346,10 @@
 				"label": "Włącz ochronę przed destrukcyjnymi poleceniami",
 				"description": "Pobiera i używa Destructive Command Guard (DCG) dla tej platformy. Polecenia dozwolone przez DCG są wykonywane automatycznie. Polecenia zablokowane przez DCG wymagają twojej zgody. Listy poleceń Zoo są wyłączone, gdy ta opcja jest aktywna. Pobrany plik wykonywalny pozostaje na dysku po wyłączeniu opcji."
 			},
+			"autoDeny": {
+				"label": "Auto-deny unapproved commands (never ask)",
+				"description": "When auto-approval for command execution is on, no confirmation prompts appear for commands. DCG off: everything not on the allowlist is auto-denied. DCG on: everything DCG does not approve is auto-denied, with the DCG reason sent to the model. No confirmation prompts."
+			},
 			"allowedCommands": "Dozwolone polecenia auto-wykonania",
 			"allowedCommandsDescription": "Prefiksy poleceń, które mogą być automatycznie wykonywane, gdy \"Zawsze zatwierdzaj operacje wykonania\" jest włączone. Dodaj * aby zezwolić na wszystkie polecenia (używaj z ostrożnością).",
 			"deniedCommands": "Odrzucone polecenia",
@@ -394,6 +398,11 @@
 		"vscodeLmDescription": "Interfejs API modelu językowego VS Code umożliwia uruchamianie modeli dostarczanych przez inne rozszerzenia VS Code (w tym, ale nie tylko, GitHub Copilot). Najłatwiejszym sposobem na rozpoczęcie jest zainstalowanie rozszerzeń Copilot i Copilot Chat z VS Code Marketplace.",
 		"awsCustomArnUse": "Wprowadź prawidłowy Amazon Bedrock ARN dla modelu, którego chcesz użyć. Przykłady formatu:",
 		"awsCustomArnDesc": "Upewnij się, że region w ARN odpowiada wybranemu powyżej regionowi AWS.",
+		"awsCustomArnBaseModel": "Model bazowy",
+		"awsCustomArnBaseModelOther": "Inny (niewymieniony)",
+		"awsCustomArnBaseModelDesc": "Model, na który wskazuje ten ARN. Zoo Code używa go do myślenia, temperatury, okna kontekstu, maksymalnego wyjścia i cen. Wykrywany automatycznie, gdy ARN zawiera nazwę modelu.",
+		"awsCustomArnContextWindow": "Okno kontekstu (tokeny)",
+		"awsCustomArnMaxTokens": "Maksymalna liczba tokenów wyjściowych",
 		"openRouterApiKey": "Klucz API OpenRouter",
 		"getOpenRouterApiKey": "Uzyskaj klucz API OpenRouter",
 		"vercelAiGatewayApiKey": "Klucz API Vercel AI Gateway",
@@ -460,6 +469,8 @@
 		"headerName": "Nazwa nagłówka",
 		"headerValue": "Wartość nagłówka",
 		"noCustomHeaders": "Brak zdefiniowanych niestandardowych nagłówków. Kliknij przycisk +, aby dodać.",
+		"extraBody": "Dodatkowa treść",
+		"extraBodyDescription": "Opcjonalny obiekt JSON scalany z treścią żądań API. Pola zarządzane przez Zoo Code, takie jak model, messages, tools i stream, nie mogą zostać nadpisane. Nie umieszczaj tu sekretów.",
 		"unboundApiKey": "Klucz API Unbound",
 		"getUnboundApiKey": "Uzyskaj klucz API Unbound",
 		"requestyApiKey": "Klucz API Requesty",
@@ -528,6 +539,8 @@
 		"apiKey": "Klucz API",
 		"openAiApiKey": "Klucz API OpenAI",
 		"openAiBaseUrl": "URL bazowy",
+		"openAiStrictToolSchemas": "Ścisłe schematy narzędzi (strict: true)",
+		"openAiStrictToolSchemasDescription": "Wysyła strict: true wraz ze schematami narzędzi, aby włączyć ścisłe przestrzeganie schematu. Wyłącz, aby korzystać z nieścisłego wywoływania narzędzi.",
 		"azureOpenAiBaseUrlPlaceholder": "https://<resource>.openai.azure.com/openai",
 		"azureOpenAiDeploymentName": "Nazwa wdrożenia Azure",
 		"azureOpenAiDeploymentNameDescription": "Wprowadź nazwę wdrożenia z Azure AI Studio, a nie nazwę bazowego modelu.",
@@ -659,6 +672,10 @@
 			"description": "Liczba kolejnych błędów lub powtórzonych akcji przed wyświetleniem okna dialogowego 'Zoo ma problemy'. Ustaw na 0, aby wyłączyć ten mechanizm bezpieczeństwa (nigdy się nie uruchomi).",
 			"unlimitedDescription": "Włączono nieograniczone próby (automatyczne kontynuowanie). Okno dialogowe nigdy się nie pojawi.",
 			"warning": "⚠️ Ustawienie na 0 pozwala na nieograniczone próby, co może zużyć znaczną ilość API"
+		},
+		"toolRepetitionSoftLimit": {
+			"label": "Próg miękkiego ostrzeżenia o powtórzeniach",
+			"description": "Po tylu identycznych kolejnych wywołaniach narzędzia narzędzie zostaje zablokowane, a AI jest proszona o uzasadnienie ponownej próby — bez angażowania Ciebie. Ustaw 0, aby wyłączyć miękkie ostrzeżenia."
 		},
 		"reasoningEffort": {
 			"label": "Wysiłek rozumowania modelu",
@@ -1036,6 +1053,11 @@
 		"modelId": "Musisz podać prawidłowe ID modelu.",
 		"modelSelector": "Musisz podać prawidłowy selektor modelu.",
 		"openAi": "Musisz podać prawidłowy bazowy URL, klucz API i ID modelu.",
+		"openAiExtraBody": {
+			"invalidJson": "Dodatkowa treść musi zawierać prawidłowy kod JSON.",
+			"objectRequired": "Dodatkowa treść musi być obiektem JSON.",
+			"reservedKeys": "Dodatkowa treść nie może nadpisywać pól zarządzanych przez Zoo Code: {{keys}}."
+		},
 		"arn": {
 			"invalidFormat": "Nieprawidłowy format ARN. Sprawdź wymagania dotyczące formatu.",
 			"regionMismatch": "Ostrzeżenie: Region w Twoim ARN ({{arnRegion}}) nie zgadza się z wybranym regionem ({{region}}). Może to powodować problemy z dostępem. Dostawca użyje regionu z ARN."

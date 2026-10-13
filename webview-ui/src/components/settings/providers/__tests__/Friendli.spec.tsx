@@ -1,3 +1,4 @@
+import { providerIdentifiers } from "@roo-code/types"
 import React from "react"
 import { render, screen, fireEvent } from "@/utils/test-utils"
 import { type ProviderSettings, type RouterModels, friendliModels } from "@roo-code/types"
@@ -51,7 +52,7 @@ describe("Friendli provider settings", () => {
 	it("renders the 'Get Friendli API Key' link when no key is set", () => {
 		render(
 			<Friendli
-				apiConfiguration={{ apiProvider: "friendli" } as ProviderSettings}
+				apiConfiguration={{ apiProvider: providerIdentifiers.friendli } as ProviderSettings}
 				setApiConfigurationField={vi.fn()}
 			/>,
 		)
@@ -61,7 +62,9 @@ describe("Friendli provider settings", () => {
 	it("hides the 'Get Friendli API Key' link once a key is set", () => {
 		render(
 			<Friendli
-				apiConfiguration={{ apiProvider: "friendli", friendliApiKey: "stored-key" } as ProviderSettings}
+				apiConfiguration={
+					{ apiProvider: providerIdentifiers.friendli, friendliApiKey: "stored-key" } as ProviderSettings
+				}
 				setApiConfigurationField={vi.fn()}
 			/>,
 		)
@@ -73,7 +76,7 @@ describe("Friendli provider settings", () => {
 		const mockSetApiConfigurationField = vi.fn()
 		render(
 			<Friendli
-				apiConfiguration={{ apiProvider: "friendli" } as ProviderSettings}
+				apiConfiguration={{ apiProvider: providerIdentifiers.friendli } as ProviderSettings}
 				setApiConfigurationField={mockSetApiConfigurationField}
 			/>,
 		)
@@ -83,7 +86,7 @@ describe("Friendli provider settings", () => {
 
 	it("passes correct props to ModelPicker (default model, static fallback, error message)", () => {
 		const mockSetApiConfigurationField = vi.fn()
-		const apiConfig = { apiProvider: "friendli" } as ProviderSettings
+		const apiConfig = { apiProvider: providerIdentifiers.friendli } as ProviderSettings
 		render(
 			<Friendli
 				apiConfiguration={apiConfig}
@@ -108,7 +111,7 @@ describe("Friendli provider settings", () => {
 			"zai-org/GLM-5.2": { ...friendliModels["zai-org/GLM-5.2"], description: "Dynamic GLM-5.2" },
 			"deepseek-ai/DeepSeek-V3.2": { ...friendliModels["zai-org/GLM-5.2"], description: "Dynamic DeepSeek" },
 		}
-		const apiConfig = { apiProvider: "friendli" } as ProviderSettings
+		const apiConfig = { apiProvider: providerIdentifiers.friendli } as ProviderSettings
 		render(
 			<Friendli
 				apiConfiguration={apiConfig}
@@ -125,7 +128,7 @@ describe("Friendli provider settings", () => {
 		// is non-nullish, so a ?? guard alone would hand the picker zero
 		// models. The settings component must treat the empty record as
 		// "no dynamic list" and keep the static fallback.
-		const apiConfig = { apiProvider: "friendli" } as ProviderSettings
+		const apiConfig = { apiProvider: providerIdentifiers.friendli } as ProviderSettings
 		render(
 			<Friendli
 				apiConfiguration={apiConfig}

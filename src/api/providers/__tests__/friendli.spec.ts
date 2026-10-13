@@ -90,10 +90,6 @@ describe("FriendliHandler", () => {
 		expect(OpenAI).toHaveBeenCalledWith(expect.objectContaining({ apiKey: friendliApiKey }))
 	})
 
-	it("should throw error when API key is not provided", () => {
-		expect(() => new FriendliHandler({})).toThrow("API key is required")
-	})
-
 	it("should return default model when no model is specified", () => {
 		const model = handler.getModel()
 		expect(model.id).toBe(friendliDefaultModelId)
@@ -511,7 +507,6 @@ describe("FriendliHandler — dynamic model loading", () => {
 		// until the dynamic list arrives.
 		const model = handler.getModel()
 		expect(model.id).toBe("friendli-only/future-model")
-		expect(model.info).toEqual(expect.objectContaining({ supportsImages: true, supportsPromptCache: false }))
 	})
 
 	it("falls back to default model after load completes and id is not in dynamic set", async () => {

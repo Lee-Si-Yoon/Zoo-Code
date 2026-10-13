@@ -11,7 +11,7 @@ import {
 } from "@roo-code/types"
 import type { ModelRecord } from "@roo-code/types"
 
-import type { ApiHandlerOptions } from "../../shared/api"
+import type { ApiHandlerOptions, GetModelsOptions } from "../../shared/api"
 import { shouldUseReasoningEffort, getModelMaxOutputTokens } from "../../shared/api"
 
 import { convertToOpenAiMessages } from "../transform/openai-format"
@@ -20,6 +20,8 @@ import { getModelParams } from "../transform/model-params"
 import { BaseOpenAiCompatibleProvider } from "./base-openai-compatible-provider"
 import { handleOpenAIError } from "./utils/error-handler"
 import { getModels } from "./fetchers/modelCache"
+import { getFriendliModels } from "./fetchers/friendli"
+import { NOT_PROVIDED } from "./constants"
 import type { ApiHandlerCreateMessageMetadata, CompletePromptOptions } from "../index"
 
 /**
@@ -64,7 +66,10 @@ type FriendliChatCompletionNonStreamingParams = Omit<
  *
  * Model list is dynamic: on construction the handler kicks off a fire-and-forget
  * fetch of the live model list from `https://api.friendli.ai/serverless/v1/models`
- * (public, no auth) via the shared `getModels` cache. `getModel()` falls back to
+ * (public, no auth) via `getModels(options, this)`. The cache invokes this handler's
+ * `fetchModels()` adapter and forwards its cancellation signal to the HTTP request.
+ * Handler construction also works without credentials for public catalog discovery;
+ * chat completions still require a valid Friendli API key. `getModel()` falls back to
  * the static `friendliModels` map when dynamic models haven't loaded yet or when
  * the requested model id isn't present in the dynamic set (e.g. the API lags
  * behind a newly released model). This mirrors the OpenRouterHandler pattern.
@@ -91,14 +96,14 @@ export class FriendliHandler extends BaseOpenAiCompatibleProvider<FriendliModelI
 	private dynamicModelsLoaded = false
 
 	/**
-	 * @param options  Provider settings; `friendliApiKey` is required.
+	 * @param options Provider settings; the public model catalog requires no API key.
 	 */
 	constructor(options: ApiHandlerOptions) {
 		super({
 			...options,
 			providerName: "Friendli",
 			baseURL: "https://api.friendli.ai/serverless/v1",
-			apiKey: options.friendliApiKey,
+			apiKey: options.friendliApiKey || NOT_PROVIDED,
 			defaultProviderModelId: friendliDefaultModelId,
 			providerModels: friendliModels as Record<FriendliModelId, ModelInfo>,
 			defaultTemperature: 0.6,
@@ -107,7 +112,7 @@ export class FriendliHandler extends BaseOpenAiCompatibleProvider<FriendliModelI
 		// Load dynamic models asynchronously to populate the cache before
 		// getModel() is called. Fire-and-forget; errors are logged by the
 		// cache layer and we gracefully fall back to static models.
-		getModels({ provider: providerIdentifiers.friendli })
+		getModels({ provider: providerIdentifiers.friendli }, this)
 			.then((models) => {
 				this.dynamicModels = models
 				this.dynamicModelsLoaded = true
@@ -116,6 +121,11 @@ export class FriendliHandler extends BaseOpenAiCompatibleProvider<FriendliModelI
 				this.dynamicModelsLoaded = true
 				console.error("[FriendliHandler] Failed to load dynamic models:", error)
 			})
+	}
+
+	async fetchModels(_options: GetModelsOptions, signal?: AbortSignal): Promise<ModelRecord> {
+		const fetchOpts: [] | [{ signal: AbortSignal }] = signal ? [{ signal }] : []
+		return getFriendliModels(undefined, ...fetchOpts)
 	}
 
 	override getModel() {

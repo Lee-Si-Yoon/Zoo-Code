@@ -346,6 +346,10 @@
 				"label": "विनाशकारी कमांड सुरक्षा सक्षम करें",
 				"description": "इस प्लेटफ़ॉर्म के लिए Destructive Command Guard (DCG) डाउनलोड करके उपयोग करें। DCG द्वारा अनुमत कमांड अपने आप चलते हैं। DCG द्वारा रोके गए कमांड चलाने के लिए आपकी मंज़ूरी आवश्यक होगी। इसके सक्षम रहने पर Zoo की कमांड सूचियाँ बंद रहेंगी। इसे बंद करने पर डाउनलोड किया गया executable रखा जाएगा।"
 			},
+			"autoDeny": {
+				"label": "Auto-deny unapproved commands (never ask)",
+				"description": "When auto-approval for command execution is on, no confirmation prompts appear for commands. DCG off: everything not on the allowlist is auto-denied. DCG on: everything DCG does not approve is auto-denied, with the DCG reason sent to the model. No confirmation prompts."
+			},
 			"allowedCommands": "अनुमत स्वतः-निष्पादन कमांड",
 			"allowedCommandsDescription": "कमांड प्रीफिक्स जो स्वचालित रूप से निष्पादित किए जा सकते हैं जब \"निष्पादन ऑपरेशन हमेशा अनुमोदित करें\" सक्षम है। सभी कमांड की अनुमति देने के लिए * जोड़ें (सावधानी से उपयोग करें)।",
 			"deniedCommands": "अस्वीकृत कमांड",
@@ -394,6 +398,11 @@
 		"vscodeLmDescription": "VS कोड भाषा मॉडल API आपको अन्य VS कोड एक्सटेंशन (जैसे GitHub Copilot) द्वारा प्रदान किए गए मॉडल चलाने की अनुमति देता है। शुरू करने का सबसे आसान तरीका VS कोड मार्केटप्लेस से Copilot और Copilot चैट एक्सटेंशन इंस्टॉल करना है।",
 		"awsCustomArnUse": "आप जिस मॉडल का उपयोग करना चाहते हैं, उसके लिए एक वैध Amazon बेडरॉक ARN दर्ज करें। प्रारूप उदाहरण:",
 		"awsCustomArnDesc": "सुनिश्चित करें कि ARN में क्षेत्र ऊपर चयनित AWS क्षेत्र से मेल खाता है।",
+		"awsCustomArnBaseModel": "अंतर्निहित मॉडल",
+		"awsCustomArnBaseModelOther": "अन्य (सूची में नहीं)",
+		"awsCustomArnBaseModelDesc": "वह मॉडल जिसकी ओर यह ARN इंगित करता है। Zoo Code इसका उपयोग सोच, तापमान, संदर्भ विंडो, अधिकतम आउटपुट और मूल्य निर्धारण के लिए करता है। जब ARN में मॉडल का नाम हो तो यह स्वचालित रूप से पहचाना जाता है।",
+		"awsCustomArnContextWindow": "संदर्भ विंडो (टोकन)",
+		"awsCustomArnMaxTokens": "अधिकतम आउटपुट टोकन",
 		"openRouterApiKey": "OpenRouter API कुंजी",
 		"getOpenRouterApiKey": "OpenRouter API कुंजी प्राप्त करें",
 		"vercelAiGatewayApiKey": "Vercel AI Gateway API कुंजी",
@@ -460,6 +469,8 @@
 		"headerName": "हेडर नाम",
 		"headerValue": "हेडर मूल्य",
 		"noCustomHeaders": "कोई कस्टम हेडर परिभाषित नहीं है। एक जोड़ने के लिए + बटन पर क्लिक करें।",
+		"extraBody": "अतिरिक्त बॉडी",
+		"extraBodyDescription": "वैकल्पिक JSON ऑब्जेक्ट जिसे API अनुरोध बॉडी में मर्ज किया जाता है। Zoo Code द्वारा प्रबंधित फ़ील्ड, जैसे model, messages, tools और stream, ओवरराइड नहीं किए जा सकते। गोपनीय जानकारी शामिल न करें।",
 		"unboundApiKey": "Unbound API कुंजी",
 		"getUnboundApiKey": "Unbound API कुंजी प्राप्त करें",
 		"requestyApiKey": "Requesty API कुंजी",
@@ -528,6 +539,8 @@
 		"openAiApiKey": "OpenAI API कुंजी",
 		"apiKey": "API कुंजी",
 		"openAiBaseUrl": "बेस URL",
+		"openAiStrictToolSchemas": "कड़े टूल स्कीमा (strict: true)",
+		"openAiStrictToolSchemasDescription": "strict schema adherence को सक्षम करने के लिए टूल स्कीमा के साथ strict: true भेजें। गैर-कड़े टूल कॉलिंग के लिए अक्षम करें।",
 		"azureOpenAiBaseUrlPlaceholder": "https://<resource>.openai.azure.com/openai",
 		"azureOpenAiDeploymentName": "Azure परिनियोजन नाम",
 		"azureOpenAiDeploymentNameDescription": "अंतर्निहित मॉडल नाम के बजाय Azure AI Studio में दिया गया परिनियोजन नाम दर्ज करें।",
@@ -659,6 +672,10 @@
 			"description": "'Zoo को समस्या हो रही है' संवाद दिखाने से पहले लगातार त्रुटियों या दोहराए गए कार्यों की संख्या। इस सुरक्षा तंत्र को अक्षम करने के लिए 0 पर सेट करें (यह कभी ट्रिगर नहीं होगा)।",
 			"unlimitedDescription": "असीमित पुनः प्रयास सक्षम (स्वतः आगे बढ़ें)। संवाद कभी नहीं दिखाई देगा।",
 			"warning": "⚠️ 0 पर सेट करने से असीमित पुनः प्रयास की अनुमति मिलती है जिससे महत्वपूर्ण एपीआई उपयोग हो सकता है"
+		},
+		"toolRepetitionSoftLimit": {
+			"label": "पुनरावृत्ति सॉफ्ट चेतावनी सीमा",
+			"description": "इतनी समान लगातार टूल कॉल के बाद, टूल को ब्लॉक कर दिया जाता है और AI से पुनः प्रयास को उचित ठहराने के लिए कहा जाता है — आपको शामिल किए बिना। सॉफ्ट चेतावनियों को अक्षम करने के लिए 0 पर सेट करें।"
 		},
 		"reasoningEffort": {
 			"label": "मॉडल तर्क प्रयास",
@@ -1036,6 +1053,11 @@
 		"modelId": "आपको एक मान्य मॉडल ID प्रदान करनी होगी।",
 		"modelSelector": "आपको एक मान्य मॉडल चयनकर्ता प्रदान करना होगा।",
 		"openAi": "आपको एक मान्य बेस URL, API कुंजी और मॉडल ID प्रदान करनी होगी।",
+		"openAiExtraBody": {
+			"invalidJson": "अतिरिक्त बॉडी में मान्य JSON होना चाहिए।",
+			"objectRequired": "अतिरिक्त बॉडी एक JSON ऑब्जेक्ट होनी चाहिए।",
+			"reservedKeys": "अतिरिक्त बॉडी Zoo Code द्वारा प्रबंधित फ़ील्ड को ओवरराइड नहीं कर सकती: {{keys}}।"
+		},
 		"arn": {
 			"invalidFormat": "अमान्य ARN प्रारूप। कृपया प्रारूप आवश्यकताएं जांचें।",
 			"regionMismatch": "चेतावनी: आपके ARN में क्षेत्र ({{arnRegion}}) आपके चयनित क्षेत्र ({{region}}) से मेल नहीं खाता। इससे पहुंच संबंधी समस्याएं हो सकती हैं। प्रदाता ARN से क्षेत्र का उपयोग करेगा।"

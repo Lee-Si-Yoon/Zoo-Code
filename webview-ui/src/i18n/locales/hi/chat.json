@@ -343,10 +343,10 @@
 		"title": "Zoo Code {{version}} रिलीज़ हो गया",
 		"support": "कृपया <githubLink>GitHub</githubLink> पर हमें स्टार देकर Zoo Code का समर्थन करें।",
 		"release": {
-			"heading": "नया क्या है:",
-			"highlight1": "🤖 नए Zoo Gateway पर balance रखने वाले users के लिए GLM-5.3-Flash और Gemini 3.7 Flash को 2 हफ़्तों के लिए 50% छूट पर आज़माएं और MiniMax M3 बिल्कुल FREE पाएं: <modelsLink>https://zoocode.dev/models</modelsLink>",
-			"highlight2": "नया model — GLM-5.3-Flash अब Z AI के माध्यम से उपलब्ध है।",
-			"highlight3": "Reliability fixes — subtask approvals को बहाल किया गया, और Vertex Gemini 3.7 के खाली tool output, terminal startup विफलताओं, background service errors तथा theme legibility की समस्याएं ठीक की गईं।"
+			"heading": "Zoo Code v3.88.0 में नया क्या है",
+			"highlight1": "✨ Provider और model समर्थन: Grok Build और बेहतर custom-model समर्थन का उपयोग करें। यह release Bedrock model limits भी ठीक करती है और Codex verbosity setting भेजती है।",
+			"highlight2": "🧭 Task भरोसेमंदपन: यह release cancellation handling, tool-turn continuation और task-message saving को ठीक करती है।",
+			"highlight3": "⚡ तेज़ editing और chat: File writes अब डिफ़ॉल्ट रूप से कृत्रिम देरी का उपयोग नहीं करतीं। Chat messages कम file data रखते हैं, और code actions अंतिम सक्रिय chat तक पहुँचते हैं।"
 		},
 		"cloudAgents": {
 			"heading": "क्लाउड में नया:",

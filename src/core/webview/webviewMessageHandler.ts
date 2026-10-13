@@ -13,6 +13,7 @@ import {
 	type TelemetrySetting,
 	type UserSettingsConfig,
 	type ModelRecord,
+	type ProviderSettings,
 	type Command as SlashCommand,
 	type WebviewMessage,
 	type EditQueuedMessagePayload,
@@ -40,6 +41,7 @@ import { saveTaskMessages } from "../task-persistence"
 import { importRooTaskHistory } from "../task-persistence/importRooTaskHistory"
 
 import { ClineProvider } from "./ClineProvider"
+import { findOriginalContent } from "./stripOriginalContent"
 import { handleCheckpointRestoreOperation } from "./checkpointRestoreHandler"
 import { generateErrorDiagnostics } from "./diagnosticsHandler"
 import {
@@ -62,7 +64,7 @@ import { Package } from "../../shared/package"
 import { type RouterName, toRouterName } from "../../shared/api"
 import { MessageEnhancer } from "./messageEnhancer"
 
-import { CodeIndexManager } from "../../services/code-index/manager"
+import { CodeIndexManagerRegistry } from "../../services/code-index/code-index-manager-registry"
 import { checkExistKey } from "../../shared/checkExistApiConfig"
 import { getRouterRemovalMessage, getRouterUnavailableSignInMessage } from "../config/routerRemoval"
 import { experimentDefault } from "../../shared/experiments"
@@ -83,8 +85,9 @@ import { openMention } from "../mentions"
 import { resolveImageMentions } from "../mentions/resolveImageMentions"
 import { RooIgnoreController } from "../ignore/RooIgnoreController"
 import { getWorkspacePath } from "../../utils/path"
-import { isPathOutsideWorkspace } from "../../utils/pathUtils"
+import { isPathOutsideWorkspace, decodeUntrustedPathToStable, isRealPathOutsideWorkspace } from "../../utils/pathUtils"
 import { Mode, defaultModeSlug } from "../../shared/modes"
+import { buildApiHandler, type ApiHandler } from "../../api"
 import { getModels, flushModels } from "../../api/providers/fetchers/modelCache"
 import { GetModelsOptions } from "../../shared/api"
 import { generateSystemPrompt } from "./generateSystemPrompt"
@@ -117,6 +120,9 @@ import {
 	handleCreateWorktreeInclude,
 	handleCheckoutBranch,
 } from "./worktree"
+
+const handlerFor = (apiConfiguration: ProviderSettings, provider: RouterName): ApiHandler =>
+	buildApiHandler({ ...apiConfiguration, apiProvider: provider })
 
 export const webviewMessageHandler = async (
 	provider: ClineProvider,
@@ -1100,12 +1106,18 @@ export const webviewMessageHandler = async (
 		case "resetState":
 			await provider.resetState()
 			break
-		case RouterModelsMessageType.flushRouterModels:
+		case RouterModelsMessageType.flushRouterModels: {
+			const { apiConfiguration } = await provider.getState()
 			const routerNameFlush: RouterName = toRouterName(message.text)
 			// Note: flushRouterModels is a generic flush without credentials
 			// For providers that need credentials, use their specific handlers
-			await flushModels({ provider: routerNameFlush } as GetModelsOptions, true)
+			await flushModels(
+				{ provider: routerNameFlush } as GetModelsOptions,
+				handlerFor(apiConfiguration, routerNameFlush),
+				true,
+			)
 			break
+		}
 		case RouterModelsMessageType.requestRouterModels: {
 			const { apiConfiguration } = await provider.getState()
 
@@ -1137,9 +1149,9 @@ export const webviewMessageHandler = async (
 						[providerIdentifiers.friendli]: {},
 					}
 
-			const safeGetModels = async (options: GetModelsOptions): Promise<ModelRecord> => {
+			const safeGetModels = async (options: GetModelsOptions, handler: ApiHandler): Promise<ModelRecord> => {
 				try {
-					return await getModels(options)
+					return await getModels(options, handler)
 				} catch (error) {
 					console.error(
 						`Failed to fetch models in webviewMessageHandler requestRouterModels for ${options.provider}:`,
@@ -1198,6 +1210,7 @@ export const webviewMessageHandler = async (
 				if (message?.values?.litellmApiKey || message?.values?.litellmBaseUrl) {
 					await flushModels(
 						{ provider: providerIdentifiers.litellm, apiKey: litellmApiKey, baseUrl: litellmBaseUrl },
+						handlerFor(apiConfiguration, providerIdentifiers.litellm),
 						true,
 					)
 				}
@@ -1216,6 +1229,7 @@ export const webviewMessageHandler = async (
 				if (message?.values?.poeApiKey || message?.values?.poeBaseUrl) {
 					await flushModels(
 						{ provider: providerIdentifiers.poe, apiKey: poeApiKey, baseUrl: poeBaseUrl },
+						handlerFor(apiConfiguration, providerIdentifiers.poe),
 						true,
 					)
 				}
@@ -1234,6 +1248,7 @@ export const webviewMessageHandler = async (
 				if (message?.values?.deepSeekApiKey || message?.values?.deepSeekBaseUrl) {
 					await flushModels(
 						{ provider: providerIdentifiers.deepseek, apiKey: deepSeekApiKey, baseUrl: deepSeekBaseUrl },
+						handlerFor(apiConfiguration, providerIdentifiers.deepseek),
 						true,
 					)
 				}
@@ -1256,6 +1271,7 @@ export const webviewMessageHandler = async (
 				if (message?.values?.moonshotApiKey || message?.values?.moonshotBaseUrl) {
 					await flushModels(
 						{ provider: providerIdentifiers.moonshot, apiKey: moonshotApiKey, baseUrl: moonshotBaseUrl },
+						handlerFor(apiConfiguration, providerIdentifiers.moonshot),
 						true,
 					)
 				}
@@ -1279,7 +1295,11 @@ export const webviewMessageHandler = async (
 
 			// Refresh the cache when a new key is explicitly provided (e.g. the Refresh Models button).
 			if (message?.values?.opencodeGoApiKey) {
-				await flushModels({ provider: providerIdentifiers.opencodeGo, apiKey: opencodeGoApiKey }, true)
+				await flushModels(
+					{ provider: providerIdentifiers.opencodeGo, apiKey: opencodeGoApiKey },
+					handlerFor(apiConfiguration, providerIdentifiers.opencodeGo),
+					true,
+				)
 			}
 
 			candidates.push({
@@ -1296,7 +1316,11 @@ export const webviewMessageHandler = async (
 
 			// Refresh the cache when a new key is explicitly provided (e.g. the Refresh Models button).
 			if (message?.values?.kenariApiKey) {
-				await flushModels({ provider: providerIdentifiers.kenari, apiKey: kenariApiKey }, true)
+				await flushModels(
+					{ provider: providerIdentifiers.kenari, apiKey: kenariApiKey },
+					handlerFor(apiConfiguration, providerIdentifiers.kenari),
+					true,
+				)
 			}
 
 			candidates.push({
@@ -1309,7 +1333,11 @@ export const webviewMessageHandler = async (
 			// same key-scoped options for refresh and retrieval.
 			const nanoGptApiKey = message?.values?.nanoGptApiKey ?? apiConfiguration.nanoGptApiKey
 			if (message?.values?.nanoGptApiKey !== undefined) {
-				await flushModels({ provider: providerIdentifiers.nanogpt, apiKey: nanoGptApiKey }, true)
+				await flushModels(
+					{ provider: providerIdentifiers.nanogpt, apiKey: nanoGptApiKey },
+					handlerFor(apiConfiguration, providerIdentifiers.nanogpt),
+					true,
+				)
 			}
 
 			candidates.push({
@@ -1341,12 +1369,12 @@ export const webviewMessageHandler = async (
 			// If refresh flag is set and we have a specific provider, flush its cache first
 			if (shouldRefresh && providerFilter && modelFetchPromises.length > 0) {
 				const targetCandidate = modelFetchPromises[0]
-				await flushModels(targetCandidate.options, true)
+				await flushModels(targetCandidate.options, handlerFor(apiConfiguration, targetCandidate.key), true)
 			}
 
 			const results = await Promise.allSettled(
 				modelFetchPromises.map(async ({ key, options }) => {
-					const models = await safeGetModels(options)
+					const models = await safeGetModels(options, handlerFor(apiConfiguration, key))
 					return { key, models } // The key is `ProviderName` here.
 				}),
 			)
@@ -1396,11 +1424,12 @@ export const webviewMessageHandler = async (
 				baseUrl,
 				apiKey,
 			}
+			const handler = handlerFor(ollamaApiConfig, providerIdentifiers.ollama)
 			try {
 				// Refresh the cache before reading the models. Keep this error
 				// separate from the read below so diagnostics identify which
 				// cache operation failed.
-				await flushModels(ollamaOptions, true)
+				await flushModels(ollamaOptions, handler, true)
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : String(error)
 				provider.log(`[requestOllamaModels] Failed to refresh model cache for ${logBaseUrl}: ${errorMsg}`)
@@ -1413,7 +1442,7 @@ export const webviewMessageHandler = async (
 			}
 
 			try {
-				const ollamaModels = await getModels(ollamaOptions)
+				const ollamaModels = await getModels(ollamaOptions, handler)
 
 				// Always post a response so the webview refresh status can
 				// transition out of "loading" — even when no models are found.
@@ -1443,9 +1472,10 @@ export const webviewMessageHandler = async (
 						provider: providerIdentifiers.lmstudio,
 						baseUrl: lmStudioApiConfig.lmStudioBaseUrl,
 					}
+					const handler = handlerFor(lmStudioApiConfig, providerIdentifiers.lmstudio)
 					// Flush cache and refresh to ensure fresh models.
-					await flushModels(lmStudioOptions, true)
-					lmStudioModels = await getModels(lmStudioOptions)
+					await flushModels(lmStudioOptions, handler, true)
+					lmStudioModels = await getModels(lmStudioOptions, handler)
 				}
 
 				if (Object.keys(lmStudioModels).length > 0) {
@@ -1517,13 +1547,70 @@ export const webviewMessageHandler = async (
 				}
 			}
 			break
-		case "openFile":
-			let filePath: string = message.text!
-			if (!path.isAbsolute(filePath)) {
-				filePath = path.join(getCurrentCwd(), filePath)
+		case "openFile": {
+			const rawPath = message.text || ""
+			if (!rawPath) {
+				break
 			}
-			await openFile(filePath, message.values as { create?: boolean; content?: string; line?: number })
+			// Task markdown links are untrusted, so markdown-sourced openFile
+			// requests (flagged by the webview with fromMarkdown) must resolve
+			// inside the current workspace. First-party callers (modes, MCP,
+			// slash-command settings) may legitimately open global config files
+			// outside the workspace, so they keep the previous behavior.
+			const fromMarkdown = message.values?.fromMarkdown === true
+			const rejectOutsideWorkspace = () => {
+				void vscode.window.showErrorMessage(
+					t("common:errors.cannot_access_path", {
+						path: rawPath,
+						error: t("common:errors.path_outside_workspace"),
+					}),
+				)
+			}
+			let filePath = rawPath
+			// Markdown link targets are URL syntax: percent-decode to a fixed point
+			// here, at the containment boundary. openFile decodes AFTER this check,
+			// so a request like `%2e%2e/%2e%2e/.env` would otherwise pass
+			// containment as a literal and escape only after that later decode.
+			if (fromMarkdown) {
+				const decoded = decodeUntrustedPathToStable(rawPath)
+				// Stryker disable next-line ConditionalExpression,BlockStatement: hostile non-stabilizing encodings are unreachable from the webview (its posts are plain link targets); the bound is defensive
+				if (decoded === null) {
+					// Stryker disable next-line CallExpression: hostile non-stabilizing encodings are pinned by the direct decodeUntrustedPathToStable bound test; the webview never posts such values
+					rejectOutsideWorkspace()
+					break
+				}
+				filePath = decoded
+			}
+			if (!path.isAbsolute(filePath)) {
+				const cwd = getCurrentCwd()
+				if (!cwd) {
+					void vscode.window.showErrorMessage(
+						t("common:errors.could_not_open_file", { errorMessage: t("common:errors.no_workspace") }),
+					)
+					break
+				}
+				filePath = path.resolve(cwd, filePath)
+			}
+			// Workspace-boundary validation (defense in depth): the webview already
+			// rejects traversal in markdown anchors, but refuse any markdown path
+			// that still resolves outside the workspace.
+			if (fromMarkdown && isPathOutsideWorkspace(filePath)) {
+				rejectOutsideWorkspace()
+				break
+			}
+			// Lexical containment cannot see symlinks: a link inside a workspace
+			// folder may resolve to a target outside the workspace. Re-check the
+			// real filesystem path (failing closed) before opening.
+			if (fromMarkdown && (await isRealPathOutsideWorkspace(filePath))) {
+				rejectOutsideWorkspace()
+				break
+			}
+			await openFile(
+				filePath,
+				message.values as { create?: boolean; content?: string; line?: number; fromMarkdown?: boolean },
+			)
 			break
+		}
 		case "readFileContent": {
 			const relPath = message.text || ""
 			if (!relPath) {
@@ -1560,6 +1647,29 @@ export const webviewMessageHandler = async (
 					fileContent: { path: relPath, content: null, error: errorMsg },
 				})
 			}
+			break
+		}
+		case "readOriginalContent": {
+			const ts = message.messageTs
+
+			if (typeof ts !== "number") {
+				break
+			}
+
+			const task = provider.getCurrentTask()
+			// A request made for another task must not be answered from the current one.
+			const isRequestedTask = message.taskId === undefined || message.taskId === task?.taskId
+			const id = { messageId: message.messageId, ts }
+
+			await provider.postMessageToWebview({
+				type: "originalContent",
+				originalContentInfo: {
+					ts,
+					messageId: message.messageId,
+					taskId: message.taskId,
+					content: isRequestedTask ? findOriginalContent(task?.clineMessages, id) : null,
+				},
+			})
 			break
 		}
 		case "openMention":
@@ -3080,7 +3190,8 @@ export const webviewMessageHandler = async (
 				await provider.postStateToWebview()
 
 				// Then handle validation and initialization for the current workspace
-				const currentCodeIndexManager = provider.getCurrentWorkspaceCodeIndexManager()
+				const scope = provider.getCurrentWorkspaceCodeIndexScope()
+				const currentCodeIndexManager = scope?.codeIndexManager
 				if (currentCodeIndexManager) {
 					// If embedder provider changed, perform proactive validation
 					if (embedderProviderChanged) {
@@ -3159,7 +3270,8 @@ export const webviewMessageHandler = async (
 		}
 
 		case "requestIndexingStatus": {
-			const manager = provider.getCurrentWorkspaceCodeIndexManager()
+			const scope = provider.getCurrentWorkspaceCodeIndexScope()
+			const manager = scope?.codeIndexManager
 			if (!manager) {
 				// No workspace open - send error status
 				await provider.postMessageToWebview({
@@ -3223,7 +3335,8 @@ export const webviewMessageHandler = async (
 		}
 		case "startIndexing": {
 			try {
-				const manager = provider.getCurrentWorkspaceCodeIndexManager()
+				const scope = provider.getCurrentWorkspaceCodeIndexScope()
+				const manager = scope?.codeIndexManager
 				if (!manager) {
 					await provider.postMessageToWebview({
 						type: "indexingStatusUpdate",
@@ -3264,15 +3377,15 @@ export const webviewMessageHandler = async (
 		}
 		case "stopIndexing": {
 			try {
-				const manager = provider.getCurrentWorkspaceCodeIndexManager()
-				if (!manager) {
+				const scope = provider.getCurrentWorkspaceCodeIndexScope()
+				if (!scope) {
 					provider.log("Cannot stop indexing: No workspace folder open")
 					return
 				}
-				manager.stopIndexing()
+				scope.codeIndexManager.stopIndexing()
 				await provider.postMessageToWebview({
 					type: "indexingStatusUpdate",
-					values: manager.getCurrentStatus(),
+					values: scope.codeIndexManager.getCurrentStatus(),
 				})
 			} catch (error) {
 				provider.log(`Error stopping indexing: ${error instanceof Error ? error.message : String(error)}`)
@@ -3281,23 +3394,12 @@ export const webviewMessageHandler = async (
 		}
 		case "toggleWorkspaceIndexing": {
 			try {
-				const manager = provider.getCurrentWorkspaceCodeIndexManager()
-				if (!manager) {
+				const scope = provider.getCurrentWorkspaceCodeIndexScope()
+				if (!scope) {
 					provider.log("Cannot toggle workspace indexing: No workspace folder open")
 					return
 				}
-				const enabled = message.bool ?? false
-				await manager.setWorkspaceEnabled(enabled)
-				if (enabled && manager.isFeatureEnabled && manager.isFeatureConfigured) {
-					await manager.initialize(provider.contextProxy)
-					void manager.startIndexing().catch((err) => provider.log(`Indexing error: ${err}`))
-				} else if (!enabled) {
-					manager.stopIndexing()
-				}
-				await provider.postMessageToWebview({
-					type: "indexingStatusUpdate",
-					values: manager.getCurrentStatus(),
-				})
+				await scope.workspaceIndexingEnablementManager.setEnabled(message.bool ?? false, provider)
 			} catch (error) {
 				provider.log(
 					`Error toggling workspace indexing: ${error instanceof Error ? error.message : String(error)}`,
@@ -3307,13 +3409,14 @@ export const webviewMessageHandler = async (
 		}
 		case "setAutoEnableDefault": {
 			try {
-				const manager = provider.getCurrentWorkspaceCodeIndexManager()
+				const scope = provider.getCurrentWorkspaceCodeIndexScope()
+				const manager = scope?.codeIndexManager
 				if (!manager) {
 					provider.log("Cannot set auto-enable default: No workspace folder open")
 					return
 				}
 				// Capture prior state for every manager before persisting the global change
-				const allManagers = CodeIndexManager.getAllInstances()
+				const allManagers = CodeIndexManagerRegistry.getAllInstances()
 				const priorStates = new Map(allManagers.map((m) => [m, m.isWorkspaceEnabled]))
 				await manager.setAutoEnableDefault(message.bool ?? true)
 				// Apply stop/start to every affected manager
@@ -3340,8 +3443,8 @@ export const webviewMessageHandler = async (
 		}
 		case "clearIndexData": {
 			try {
-				const manager = provider.getCurrentWorkspaceCodeIndexManager()
-				if (!manager) {
+				const scope = provider.getCurrentWorkspaceCodeIndexScope()
+				if (!scope) {
 					provider.log("Cannot clear index data: No workspace folder open")
 					await provider.postMessageToWebview({
 						type: "indexCleared",
@@ -3352,7 +3455,7 @@ export const webviewMessageHandler = async (
 					})
 					return
 				}
-				await manager.clearIndexData()
+				await scope.codeIndexManager.clearIndexData()
 				await provider.postMessageToWebview({ type: "indexCleared", values: { success: true } })
 			} catch (error) {
 				provider.log(`Error clearing index data: ${error instanceof Error ? error.message : String(error)}`)

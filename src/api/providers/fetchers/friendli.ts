@@ -5,6 +5,7 @@ import type { ModelInfo } from "@roo-code/types"
 
 import type { ApiHandlerOptions } from "../../../shared/api"
 import { parseApiPrice } from "../../../shared/cost"
+import { throwIfAborted } from "../utils/abort-signal"
 
 /**
  * FriendliPricing
@@ -149,12 +150,18 @@ function buildSupportsReasoningEffort(
  * shape and logs (but does not throw on) per-model mapping errors, mirroring
  * the Vercel AI Gateway fetcher.
  */
-export async function getFriendliModels(_options?: ApiHandlerOptions): Promise<Record<string, ModelInfo>> {
+export async function getFriendliModels(
+	_options?: ApiHandlerOptions,
+	opts?: { signal?: AbortSignal },
+): Promise<Record<string, ModelInfo>> {
 	const models: Record<string, ModelInfo> = {}
 	const baseURL = "https://api.friendli.ai/serverless/v1"
 
 	try {
-		const response = await axios.get<FriendliModelsResponse>(`${baseURL}/models`, { timeout: 10_000 })
+		const response = await axios.get<FriendliModelsResponse>(`${baseURL}/models`, {
+			timeout: 10_000,
+			signal: opts?.signal,
+		})
 		const result = friendliModelsResponseSchema.safeParse(response.data)
 		const data = result.success ? result.data.data : []
 
@@ -178,6 +185,9 @@ export async function getFriendliModels(_options?: ApiHandlerOptions): Promise<R
 			}
 		}
 	} catch (error) {
+		// Cancellation must reject rather than appear to be an empty catalog.
+		throwIfAborted(opts?.signal)
+
 		console.error(`Error fetching Friendli models: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`)
 	}
 

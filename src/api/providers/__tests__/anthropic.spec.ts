@@ -3,6 +3,7 @@
 import { AnthropicHandler } from "../anthropic"
 import { ApiHandlerOptions } from "../../../shared/api"
 import { asyncStreamFrom, collectStream } from "../../../test-utils/stream"
+import type { ApiStreamChunk } from "../../../api/transform/stream"
 import { clearAllMocks } from "../../../test-utils/reset"
 
 // Mock TelemetryService
@@ -247,7 +248,7 @@ describe("AnthropicHandler", () => {
 			await collectStream(stream)
 
 			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
-			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect(requestBody?.thinking).toEqual({ type: "adaptive", display: "summarized" })
 			expect(requestBody?.max_tokens).toBe(16384)
 		})
 
@@ -290,7 +291,7 @@ describe("AnthropicHandler", () => {
 			await collectStream(stream)
 
 			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
-			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect(requestBody?.thinking).toEqual({ type: "adaptive", display: "summarized" })
 			expect(requestBody?.max_tokens).toBe(32768)
 		})
 
@@ -334,7 +335,7 @@ describe("AnthropicHandler", () => {
 			await collectStream(stream)
 
 			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
-			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect(requestBody?.thinking).toEqual({ type: "adaptive", display: "summarized" })
 			expect(requestBody?.max_tokens).toBe(16384)
 		})
 
@@ -377,7 +378,7 @@ describe("AnthropicHandler", () => {
 			await collectStream(stream)
 
 			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
-			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect(requestBody?.thinking).toEqual({ type: "adaptive", display: "summarized" })
 			expect(requestBody?.max_tokens).toBe(32768)
 		})
 
@@ -400,7 +401,32 @@ describe("AnthropicHandler", () => {
 
 			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
 			const requestOptions = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[1]
-			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect(requestBody?.thinking).toEqual({ type: "adaptive", display: "summarized" })
+			expect(requestBody?.temperature).toBeUndefined()
+			expect(requestBody?.max_tokens).toBe(32768)
+			expect(requestOptions?.headers?.["anthropic-beta"]).toContain("prompt-caching-2024-07-31")
+		})
+
+		it("should use adaptive thinking for Claude Fable 5.1 when reasoning is enabled", async () => {
+			const fableHandler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-fable-5-1",
+				enableReasoningEffort: true,
+				modelMaxTokens: 32768,
+			})
+
+			const stream = fableHandler.createMessage(systemPrompt, [
+				{
+					role: "user",
+					content: [{ type: "text" as const, text: "Hello" }],
+				},
+			])
+
+			await collectStream(stream)
+
+			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
+			const requestOptions = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[1]
+			expect(requestBody?.thinking).toEqual({ type: "adaptive", display: "summarized" })
 			expect(requestBody?.temperature).toBeUndefined()
 			expect(requestBody?.max_tokens).toBe(32768)
 			expect(requestOptions?.headers?.["anthropic-beta"]).toContain("prompt-caching-2024-07-31")
@@ -425,7 +451,7 @@ describe("AnthropicHandler", () => {
 
 			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
 			const requestOptions = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[1]
-			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect(requestBody?.thinking).toEqual({ type: "adaptive", display: "summarized" })
 			expect(requestBody?.temperature).toBeUndefined()
 			expect(requestBody?.max_tokens).toBe(32768)
 			expect(requestOptions?.headers?.["anthropic-beta"]).toContain("prompt-caching-2024-07-31")
@@ -450,9 +476,33 @@ describe("AnthropicHandler", () => {
 
 			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
 			const requestOptions = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[1]
-			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect(requestBody?.thinking).toEqual({ type: "adaptive", display: "summarized" })
 			expect(requestBody?.temperature).toBeUndefined()
 			expect(requestBody?.max_tokens).toBe(32768)
+			expect(requestOptions?.headers?.["anthropic-beta"]).toContain("prompt-caching-2024-07-31")
+		})
+
+		it("should use adaptive thinking for Claude Opus 5.5 when reasoning is enabled", async () => {
+			const opusHandler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-5-5",
+				enableReasoningEffort: true,
+			})
+
+			const stream = opusHandler.createMessage(systemPrompt, [
+				{
+					role: "user",
+					content: [{ type: "text" as const, text: "Hello" }],
+				},
+			])
+
+			await collectStream(stream)
+
+			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
+			const requestOptions = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[1]
+			expect(requestBody?.thinking).toEqual({ type: "adaptive", display: "summarized" })
+			expect(requestBody?.temperature).toBeUndefined()
+			expect(requestBody?.max_tokens).toBe(128_000)
 			expect(requestOptions?.headers?.["anthropic-beta"]).toContain("prompt-caching-2024-07-31")
 		})
 
@@ -474,7 +524,248 @@ describe("AnthropicHandler", () => {
 
 			const requestBody = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0]
 			expect(requestBody?.model).toBe("claude-sonnet-5-bf")
-			expect(requestBody?.thinking).toEqual({ type: "adaptive" })
+			expect(requestBody?.thinking).toEqual({ type: "adaptive", display: "summarized" })
+		})
+
+		it("should surface thinking_tokens from output_tokens_details in usage chunks", async () => {
+			// Adaptive models report reasoning tokens inside
+			// `output_tokens_details.thinking_tokens` (message_start snapshot is
+			// typically absent; message_delta carries the final decomposition).
+			mockCreate.mockImplementationOnce(async () =>
+				asyncStreamFrom([
+					{
+						type: "message_start",
+						message: {
+							usage: {
+								input_tokens: 100,
+								output_tokens: 50,
+							},
+						},
+					},
+					{
+						type: "content_block_start",
+						index: 0,
+						content_block: {
+							type: "text",
+							text: "Hello",
+						},
+					},
+					{
+						type: "content_block_delta",
+						index: 0,
+						delta: {
+							type: "text_delta",
+							text: " world",
+						},
+					},
+					{
+						type: "message_delta",
+						usage: {
+							output_tokens: 200,
+							output_tokens_details: {
+								thinking_tokens: 150,
+							},
+						},
+						delta: {
+							stop_reason: "end_turn",
+							stop_sequence: null,
+						},
+					},
+				]),
+			)
+
+			const adaptiveHandler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-4-7",
+				enableReasoningEffort: true,
+			})
+
+			const stream = adaptiveHandler.createMessage("prompt", [
+				{
+					role: "user",
+					content: [{ type: "text", text: "Hi" }],
+				},
+			])
+
+			const chunks: ApiStreamChunk[] = await collectStream(stream)
+
+			// message_start snapshot carries no thinking decomposition
+			const usageChunks = chunks.filter(
+				(chunk): chunk is Extract<ApiStreamChunk, { type: "usage" }> => chunk.type === "usage",
+			)
+			const startUsage = usageChunks.find((chunk) => chunk.inputTokens > 0)
+			expect(startUsage).toBeDefined()
+			// Property absence, not just undefined: toEqual ignores own properties
+			// whose value is undefined, so a regression that adds
+			// `reasoningTokens: undefined` must fail this assertion.
+			expect(startUsage).not.toHaveProperty("reasoningTokens")
+
+			// message_delta surfaces the final reasoning token count
+			const deltaUsage = usageChunks.find((chunk) => chunk.inputTokens === 0)
+			expect(deltaUsage).toBeDefined()
+			expect(deltaUsage?.outputTokens).toBe(200)
+			expect(deltaUsage?.reasoningTokens).toBe(150)
+		})
+
+		it("should surface numeric thinking_tokens from the message_start usage snapshot", async () => {
+			// Some surfaces report the thinking decomposition as early as the
+			// message_start snapshot; assert the snapshot usage chunk surfaces
+			// reasoningTokens, and that a message_delta without
+			// output_tokens_details omits it.
+			mockCreate.mockImplementationOnce(async () =>
+				asyncStreamFrom([
+					{
+						type: "message_start",
+						message: {
+							usage: {
+								input_tokens: 100,
+								output_tokens: 10,
+								output_tokens_details: {
+									thinking_tokens: 5,
+								},
+							},
+						},
+					},
+					{
+						type: "content_block_start",
+						index: 0,
+						content_block: {
+							type: "text",
+							text: "Hello",
+						},
+					},
+					{
+						type: "content_block_delta",
+						index: 0,
+						delta: {
+							type: "text_delta",
+							text: " world",
+						},
+					},
+					{
+						type: "message_delta",
+						usage: {
+							output_tokens: 200,
+						},
+						delta: {
+							stop_reason: "end_turn",
+							stop_sequence: null,
+						},
+					},
+				]),
+			)
+
+			const adaptiveHandler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-4-7",
+				enableReasoningEffort: true,
+			})
+
+			const stream = adaptiveHandler.createMessage("prompt", [
+				{
+					role: "user",
+					content: [{ type: "text", text: "Hi" }],
+				},
+			])
+
+			const chunks: ApiStreamChunk[] = await collectStream(stream)
+
+			const usageChunks = chunks.filter(
+				(chunk): chunk is Extract<ApiStreamChunk, { type: "usage" }> => chunk.type === "usage",
+			)
+
+			// message_start snapshot surfaces the reported thinking decomposition
+			const startUsage = usageChunks.find((chunk) => chunk.inputTokens > 0)
+			expect(startUsage).toBeDefined()
+			expect(startUsage?.reasoningTokens).toBe(5)
+
+			// message_delta without output_tokens_details omits reasoningTokens
+			const deltaUsage = usageChunks.find((chunk) => chunk.inputTokens === 0)
+			expect(deltaUsage).toBeDefined()
+			expect(deltaUsage?.outputTokens).toBe(200)
+			// Property absence, not just undefined (toEqual ignores undefined values).
+			expect(deltaUsage).not.toHaveProperty("reasoningTokens")
+		})
+
+		it("should preserve a zero-valued thinking_tokens in message_start and message_delta usage chunks", async () => {
+			// A zero-valued `thinking_tokens` is a valid numeric boundary (the
+			// model skipped thinking this turn); both usage chunks must preserve
+			// it as 0 rather than dropping it via a truthiness check.
+			mockCreate.mockImplementationOnce(async () =>
+				asyncStreamFrom([
+					{
+						type: "message_start",
+						message: {
+							usage: {
+								input_tokens: 100,
+								output_tokens: 10,
+								output_tokens_details: {
+									thinking_tokens: 0,
+								},
+							},
+						},
+					},
+					{
+						type: "content_block_start",
+						index: 0,
+						content_block: {
+							type: "text",
+							text: "Hello",
+						},
+					},
+					{
+						type: "content_block_delta",
+						index: 0,
+						delta: {
+							type: "text_delta",
+							text: " world",
+						},
+					},
+					{
+						type: "message_delta",
+						usage: {
+							output_tokens: 200,
+							output_tokens_details: {
+								thinking_tokens: 0,
+							},
+						},
+						delta: {
+							stop_reason: "end_turn",
+							stop_sequence: null,
+						},
+					},
+				]),
+			)
+
+			const adaptiveHandler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-4-7",
+				enableReasoningEffort: true,
+			})
+
+			const stream = adaptiveHandler.createMessage("prompt", [
+				{
+					role: "user",
+					content: [{ type: "text", text: "Hi" }],
+				},
+			])
+
+			const chunks: ApiStreamChunk[] = await collectStream(stream)
+
+			const usageChunks = chunks.filter(
+				(chunk): chunk is Extract<ApiStreamChunk, { type: "usage" }> => chunk.type === "usage",
+			)
+
+			// message_start snapshot preserves the zero-valued decomposition
+			const startUsage = usageChunks.find((chunk) => chunk.inputTokens > 0)
+			expect(startUsage).toBeDefined()
+			expect(startUsage?.reasoningTokens).toBe(0)
+
+			// message_delta preserves the zero-valued final decomposition
+			const deltaUsage = usageChunks.find((chunk) => chunk.inputTokens === 0)
+			expect(deltaUsage).toBeDefined()
+			expect(deltaUsage?.outputTokens).toBe(200)
+			expect(deltaUsage?.reasoningTokens).toBe(0)
 		})
 	})
 
@@ -637,6 +928,27 @@ describe("AnthropicHandler", () => {
 			expect(model.reasoningBudget).toBeUndefined()
 		})
 
+		it("should handle Claude Fable 5.1 model correctly", () => {
+			const handler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-fable-5-1",
+			})
+			const model = handler.getModel()
+			expect(model.id).toBe("claude-fable-5-1")
+			expect(model.info.maxTokens).toBe(128000)
+			expect(model.info.contextWindow).toBe(1000000)
+			expect(model.maxTokens).toBe(8192)
+			expect(model.info.inputPrice).toBe(10)
+			expect(model.info.outputPrice).toBe(50)
+			expect(model.info.cacheWritesPrice).toBe(12.5)
+			expect(model.info.cacheReadsPrice).toBe(0.25)
+			expect(model.info.supportsReasoningBinary).toBe(true)
+			expect(model.info.supportsReasoningBudget).toBe(true)
+			expect(model.info.supportsPromptCache).toBe(true)
+			expect(model.info.supportsTemperature).toBe(false)
+			expect(model.reasoningBudget).toBeUndefined()
+		})
+
 		it("should handle Claude Sonnet 5 model correctly", () => {
 			const handler = new AnthropicHandler({
 				apiKey: "test-api-key",
@@ -666,6 +978,27 @@ describe("AnthropicHandler", () => {
 			expect(model.maxTokens).toBe(8192)
 			expect(model.info.supportsReasoningBinary).toBe(true)
 			expect(model.info.supportsReasoningBudget).toBe(true)
+			expect(model.info.supportsPromptCache).toBe(true)
+			expect(model.info.supportsTemperature).toBe(false)
+			expect(model.reasoningBudget).toBeUndefined()
+		})
+
+		it("should handle Claude Opus 5.5 model correctly", () => {
+			const handler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-opus-5-5",
+			})
+			const model = handler.getModel()
+			expect(model.id).toBe("claude-opus-5-5")
+			expect(model.info.maxTokens).toBe(128000)
+			expect(model.info.contextWindow).toBe(1000000)
+			expect(model.info.inputPrice).toBe(4.0)
+			expect(model.info.outputPrice).toBe(20.0)
+			expect(model.info.cacheWritesPrice).toBe(5.0)
+			expect(model.info.cacheReadsPrice).toBe(0.2)
+			expect(model.maxTokens).toBe(128000)
+			expect(model.info.supportsReasoningBinary).toBe(true)
+			expect(model.info.supportsReasoningBudget).toBeUndefined()
 			expect(model.info.supportsPromptCache).toBe(true)
 			expect(model.info.supportsTemperature).toBe(false)
 			expect(model.reasoningBudget).toBeUndefined()
@@ -952,7 +1285,7 @@ describe("AnthropicHandler", () => {
 			)
 		})
 
-		it("should set tool_choice to undefined when tool_choice is 'none' (tools are still passed)", async () => {
+		it("should set tool_choice to 'none' when tool_choice is 'none' (tools are still passed)", async () => {
 			// Handler uses native protocol by default
 			const stream = handler.createMessage(systemPrompt, messages, {
 				taskId: "test-task",
@@ -964,12 +1297,21 @@ describe("AnthropicHandler", () => {
 			await collectStream(stream)
 
 			// Tools are now always present (minimum 6 from ALWAYS_AVAILABLE_TOOLS)
-			// When tool_choice is 'none', the converter returns undefined for tool_choice
-			// but tools are still passed since they're always present
+			// Explicitly disable tool use while preserving the available tool definitions.
 			expect(mockCreate).toHaveBeenCalledWith(
 				expect.objectContaining({
-					tools: expect.any(Array),
-					tool_choice: undefined,
+					tools: [
+						{
+							name: "get_weather",
+							description: "Get the current weather",
+							input_schema: {
+								type: "object",
+								properties: { location: { type: "string" } },
+								required: ["location"],
+							},
+						},
+					],
+					tool_choice: { type: "none" },
 				}),
 				expect.anything(),
 			)
@@ -990,6 +1332,133 @@ describe("AnthropicHandler", () => {
 				expect.objectContaining({
 					tool_choice: { type: "tool", name: "get_weather", disable_parallel_tool_use: false },
 				}),
+				expect.anything(),
+			)
+		})
+
+		it.each([
+			["required with default parallel calls", "required" as const, undefined, false],
+			[
+				"named with default parallel calls",
+				{ type: "function" as const, function: { name: "get_weather" } },
+				undefined,
+				false,
+			],
+			["required with parallel calls", "required" as const, true, false],
+			[
+				"named with parallel calls",
+				{ type: "function" as const, function: { name: "get_weather" } },
+				true,
+				false,
+			],
+			["required without parallel calls", "required" as const, false, true],
+			[
+				"named without parallel calls",
+				{ type: "function" as const, function: { name: "get_weather" } },
+				false,
+				true,
+			],
+		])(
+			"should normalize %s tool_choice to auto for Claude Fable 5.1",
+			async (_, toolChoice, parallelToolCalls, disableParallelToolUse) => {
+				const fableHandler = new AnthropicHandler({
+					apiKey: "test-api-key",
+					apiModelId: "claude-fable-5-1",
+				})
+				const stream = fableHandler.createMessage(systemPrompt, messages, {
+					taskId: "test-task",
+					tools: mockTools,
+					tool_choice: toolChoice,
+					parallelToolCalls,
+				})
+
+				await collectStream(stream)
+
+				expect(mockCreate).toHaveBeenCalledWith(
+					expect.objectContaining({
+						tool_choice: { type: "auto", disable_parallel_tool_use: disableParallelToolUse },
+					}),
+					expect.anything(),
+				)
+			},
+		)
+
+		it("should preserve an omitted tool_choice for Claude Fable 5.1", async () => {
+			const fableHandler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-fable-5-1",
+			})
+			const stream = fableHandler.createMessage(systemPrompt, messages, {
+				taskId: "test-task",
+				tools: mockTools,
+			})
+
+			await collectStream(stream)
+
+			expect(mockCreate).toHaveBeenCalledWith(
+				expect.objectContaining({ tool_choice: undefined }),
+				expect.anything(),
+			)
+		})
+
+		it("should disable parallel tool calls when tool_choice is omitted for Claude Fable 5.1", async () => {
+			const fableHandler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-fable-5-1",
+			})
+			const stream = fableHandler.createMessage(systemPrompt, messages, {
+				taskId: "test-task",
+				tools: mockTools,
+				parallelToolCalls: false,
+			})
+
+			await collectStream(stream)
+
+			expect(mockCreate).toHaveBeenCalledWith(
+				expect.objectContaining({
+					tool_choice: { type: "auto", disable_parallel_tool_use: true },
+				}),
+				expect.anything(),
+			)
+		})
+
+		it("should preserve an explicit none tool_choice for Claude Fable 5.1", async () => {
+			const fableHandler = new AnthropicHandler({
+				apiKey: "test-api-key",
+				apiModelId: "claude-fable-5-1",
+			})
+			const stream = fableHandler.createMessage(systemPrompt, messages, {
+				taskId: "test-task",
+				tools: mockTools,
+				tool_choice: "none",
+			})
+
+			await collectStream(stream)
+
+			expect(mockCreate).toHaveBeenCalledWith(
+				expect.objectContaining({ tool_choice: { type: "none" } }),
+				expect.anything(),
+			)
+		})
+
+		it.each([
+			["required", "required" as const, { type: "any", disable_parallel_tool_use: false }],
+			[
+				"named",
+				{ type: "function" as const, function: { name: "get_weather" } },
+				{ type: "tool", name: "get_weather", disable_parallel_tool_use: false },
+			],
+		])("should preserve %s tool_choice for non-Fable models", async (_, toolChoice, expectedToolChoice) => {
+			const stream = handler.createMessage(systemPrompt, messages, {
+				taskId: "test-task",
+				tools: mockTools,
+				tool_choice: toolChoice,
+			})
+
+			await collectStream(stream)
+
+			expect(mockCreate).toHaveBeenCalledWith(
+				expect.objectContaining({ tool_choice: expectedToolChoice }),
 				expect.anything(),
 			)
 		})

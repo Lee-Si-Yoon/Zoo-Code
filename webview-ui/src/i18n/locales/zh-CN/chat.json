@@ -344,10 +344,10 @@
 		"title": "Zoo Code {{version}} 已发布",
 		"support": "请在 <githubLink>GitHub</githubLink> 上为 Zoo Code 点星支持我们。",
 		"release": {
-			"heading": "新增功能：",
-			"highlight1": "🤖 在全新的 Zoo Gateway 上，有余额的用户可在 2 周内以 5 折优惠试用 GLM-5.3-Flash 和 Gemini 3.7 Flash，并可完全免费使用 MiniMax M3：<modelsLink>https://zoocode.dev/models</modelsLink>",
-			"highlight2": "新模型 — GLM-5.3-Flash 现已通过 Z AI 提供。",
-			"highlight3": "可靠性修复 — 恢复了子任务批准，解决了 Vertex Gemini 3.7 工具输出为空、终端启动失败和后台服务错误问题，并提升了不同 IDE 主题下的可读性。"
+			"heading": "Zoo Code v3.88.0 新增内容",
+			"highlight1": "✨ Provider 与模型支持：使用 Grok Build 和改进后的自定义模型支持。本版本还修复了 Bedrock 模型上限，并发送 Codex verbosity 设置。",
+			"highlight2": "🧭 任务可靠性：本版本修复了取消处理、tool turn 续行和任务消息保存。",
+			"highlight3": "⚡ 更快的编辑与聊天：文件写入默认不再使用人为延迟。聊天消息携带更少的文件数据，代码操作会到达最近活动的聊天。"
 		},
 		"cloudAgents": {
 			"heading": "云端新功能：",
